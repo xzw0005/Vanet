@@ -28,7 +28,7 @@ public class Packet implements Serializable {
 		this.vehicle = v;
 	}
 	
-	public byte[] packetAssembler(Packet packet) throws Exception {
+	public static byte[] packetAssembler(Packet packet) throws Exception {
 		ByteArrayOutputStream bos = null;
 		ObjectOutputStream oos = null;
 		byte[] packetData = null;
@@ -46,7 +46,7 @@ public class Packet implements Serializable {
 		return packetData;
 	}
 	
-	public Packet packetDessembler(byte[] packetData) throws Exception {
+	public static Packet packetDessembler(byte[] packetData) throws Exception {
 		ByteArrayInputStream bis = null;
 		ObjectInputStream ois = null;
 		Object packetObject = null;
