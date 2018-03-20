@@ -25,5 +25,6 @@ public class GPS {
 	public long getTimestamp() {
 		return this.timestamp;
 	}
+	
 
 }
