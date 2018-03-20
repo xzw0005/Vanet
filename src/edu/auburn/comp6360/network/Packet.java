@@ -7,12 +7,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-import edu.auburn.comp6360.application.Vehicle;
-
 public class Packet implements Serializable {
 	
 	private PacketHeader header;
-	private Vehicle vehicle;
+	private VehicleInfo vInfo;
 	
 	private int packetSize;
 	
@@ -24,8 +22,8 @@ public class Packet implements Serializable {
 		this.header = header;
 	}
 	
-	public void setVehicle(Vehicle v) {
-		this.vehicle = v;
+	public void setVehicleInfo(VehicleInfo vInfo) {
+		this.vInfo = vInfo;
 	}
 	
 	public static byte[] packetAssembler(Packet packet) throws Exception {
@@ -64,8 +62,8 @@ public class Packet implements Serializable {
 		return this.header;
 	}
 	
-	public Vehicle getVehicle() {
-		return this.vehicle;
+	public VehicleInfo getVehicleInfo() {
+		return this.vInfo;
 	}
 	
 	public int getPacketSize() {

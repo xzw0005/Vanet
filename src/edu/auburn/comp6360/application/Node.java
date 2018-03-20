@@ -77,4 +77,8 @@ public class Node {
 		return sb.toString(); 
 	}
 	
+	public boolean equals(Node other) {
+		return this.nodeID == other.nodeID;
+	}
+	
 }

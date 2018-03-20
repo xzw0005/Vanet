@@ -1,35 +1,49 @@
 package edu.auburn.comp6360.application;
 
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+
+import edu.auburn.comp6360.network.ClientThread;
+import edu.auburn.comp6360.network.Packet;
+import edu.auburn.comp6360.network.PacketHeader;
+import edu.auburn.comp6360.network.VehicleInfo;
+
 public class Vehicle {
 	
 	private double length;
 	private double width;
 
-	private byte[] address;
 	private GPS gps;
 	private double velocity;
 	private double acceleration;
-	private int brake;
-	private double gas;
 	
-	private int nodeID;
+	private byte[] address;
+	private int packetSeqNum;
+	
+	private int nodeID;	// from config file
+	
+	private VehicleCache cache;
+	private List<Node> neighbors;
+	
+	
+	private ExecutorService executor;
 	
 	
 	public Vehicle() {
 		gps = new GPS();
-		brake = 1;
-		gas = 100.0;
+
+		packetSeqNum = 0;
 	}
 	
-	public Vehicle(byte[] addr, GPS initGps, double initSpeed, double initAcc, int nodeId) {
+	public Vehicle(byte[] addr, GPS initGps, double initSpeed, double initAcc, int nodeID) {
 		this.address = addr;
 		this.gps = initGps;
 		this.velocity = initSpeed;
 		this.acceleration = initAcc;
-		this.nodeID = nodeId;
+		this.nodeID = nodeID;
 		
-		this.brake = 1;
-		this.gas = 100.0;
+		
+		this.packetSeqNum = 0;
 	}
 	
 	public void setLength(double length) {
@@ -83,6 +97,40 @@ public class Vehicle {
 	
 	public int getNodeID() {
 		return this.nodeID;
+	}
+	
+	
+	public void inreaseSeqNum() {
+		this.packetSeqNum++;
+	}
+	
+	
+	synchronized public void initPacket() {
+		PacketHeader header = new PacketHeader(nodeID, nodeID);
+		VehicleInfo vInfo = new VehicleInfo(gps, velocity, acceleration);
+	}
+	
+	
+	
+	/*
+	 * Upon received packet, forward to its neighbors (except previous hop)
+	 */
+	synchronized public void forwardPacket(Packet packet) {
+		PacketHeader header = packet.getHeader();
+		int source = header.getSource();
+		int sn = header.getSeqNum();
+		int prevHop = header.getPrevHop();
+		
+		if (cache.updatePacketSeqNum(source, sn)) {
+			for (Node nb : neighbors) {
+				if (nb.getNodeID() != prevHop) {
+					String nbHostname = nb.getHostname();
+					int nbPort = nb.getPortNumber();
+					packet.getHeader().setPrevHop(this.nodeID);
+					executor.execute(new ClientThread(nbHostname, nbPort, packet));
+				}
+			}
+		}
 	}
 	
 	
