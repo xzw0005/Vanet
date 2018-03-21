@@ -30,7 +30,7 @@ public class Vehicle {
 	
 	private int nodeID;	// from config file
 	
-	private VehicleCache cache;
+	private RbaCache cache;
 	private List<Node> neighbors;
 	
 	
@@ -59,7 +59,7 @@ public class Vehicle {
 		this.address = localAddr;
 	}
 	
-	public void setGps(GPS newGps) {
+	public void setGPS(GPS newGps) {
 		this.gps.setX(newGps.getX());
 		this.gps.setY(newGps.getY());
 	}
@@ -138,7 +138,23 @@ public class Vehicle {
 		}
 	}
 	
-	public void start() {
+//	public void start() {
+//
+//	}
+
+	
+	private class SensorThread extends Thread {
+		
+		@Override
+		public void run() {
+			while (true) {
+				try {
+					
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		
 	}
 	
