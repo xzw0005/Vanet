@@ -24,6 +24,7 @@ public class LeadingTruck extends Vehicle {
    * @param
    * @return a random number between -1 and 1
    */	
+	@Override
 	public void setAcceleration() {
 		this.setAcceleration(Math.random() * 2 - 1);
 	}

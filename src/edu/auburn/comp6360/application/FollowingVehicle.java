@@ -6,5 +6,8 @@ public class FollowingVehicle extends Vehicle {
 		super();
 	}
 	
-	
+	@Override
+	public void setAcceleration() {
+		this.setAcceleration(this.getAcceleration());
+	}	
 }

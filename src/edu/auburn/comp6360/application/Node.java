@@ -1,23 +1,25 @@
 package edu.auburn.comp6360.application;
 
 import java.util.List;
+import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class Node {
 
 	private int nodeID;
-	private String host;
+	private String hostname;
 	private int port;
 	private double x, y;
-	private List<Node> neighbors;
+	private List<Integer> links;
 	
-	public Node(int nodeID, String host, int port, double xCoord, double yCoord) {
+	public Node(int nodeID, String host, int portNumber, double xCoord, double yCoord) {
 		this.nodeID = nodeID;
-		this.host = host;
-		this.port = port;
-		this.x = xCoord; //gps.getX();
-		this.y = yCoord; //gps.getY();
-		this.neighbors = new ArrayList<Node>();
+		this.hostname = host;
+		this.port = portNumber;
+		this.x = xCoord; 
+		this.y = yCoord; 
+		this.links = new ArrayList<Integer>();
 	}
 	
 	public int getNodeID() {
@@ -25,7 +27,7 @@ public class Node {
 	}
 	
 	public String getHostname() {
-		return host;
+		return hostname;
 	}
 	
 	public int getPortNumber() {
@@ -40,16 +42,17 @@ public class Node {
 		return this.y;
 	}
 	
-	synchronized public List<Node> getNeighbors() {
-		return neighbors;
+	synchronized public List<Integer> getLinks() {
+		return links;
 	}
 	
-	public boolean addNeighbor(Node nb) {
-		return neighbors.add(nb);
+	public void addLink(int link) {
+		links.add(link);
+		Collections.sort(links);
 	}
 	
-	public boolean removeNeighbor(Node nb) {
-		return neighbors.remove(nb);
+	public boolean removeLink(int link) {
+		return links.remove(Integer.valueOf(link));
 	}
 	
 	public void setGPS(GPS gps) {
@@ -60,19 +63,19 @@ public class Node {
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer("Node ");
-		sb.append(this.nodeID);		
+		sb.append(getNodeID());		
 		sb.append(" ");
-		sb.append(this.host);
+		sb.append(getHostname());
 		sb.append(", ");
-		sb.append(this.port);
+		sb.append(getPortNumber());
 		sb.append(" ");
-		sb.append(this.x);
+		sb.append(getXcoord());
 		sb.append(" ");
-		sb.append(this.y);
+		sb.append(getYcoord());
 		sb.append(" links");
-		for (Node link: this.neighbors) {
+		for (int link: getLinks()) {
 			sb.append(" ");
-			sb.append(link.getNodeID());
+			sb.append(link);
 		}
 		return sb.toString(); 
 	}

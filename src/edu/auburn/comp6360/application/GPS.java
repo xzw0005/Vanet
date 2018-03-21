@@ -30,17 +30,17 @@ public class GPS {
 		return this.y;
 	}
 	
-	public long getTimestamp() {
-		return this.timeStamp;
-	}
-	
-	public void update(double vel, double acc) {
-		long currentTime = System.currentTimeMillis();
-		double dt = (currentTime - this.timeStamp) / 1000.0; // in seconds
-		double distance = vel + 0.5 * acc * Math.pow(dt, 2); 
-		this.timeStamp = currentTime;
-		this.x += distance;
-	}
-	
+//	public long getTimestamp() {
+//		return this.timeStamp;
+//	}
+//	
+//	public void update(double vel, double acc) {
+//		long currentTime = System.currentTimeMillis();
+//		double dt = (currentTime - this.timeStamp) / 1000.0; // in seconds
+//		double distance = vel + 0.5 * acc * Math.pow(dt, 2); 
+//		this.timeStamp = currentTime;
+//		this.x += distance;
+//	}
+//	
 
 }
