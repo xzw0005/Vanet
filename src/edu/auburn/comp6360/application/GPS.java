@@ -4,14 +4,12 @@ public class GPS {
 	
 	private double x;
 	private double y;
-	private long timeStamp;
 	
 	public GPS() {
-		this.timeStamp = System.currentTimeMillis();
+
 	}
 	
 	public GPS(double x, double y) {
-		this.timeStamp = System.currentTimeMillis();
 		this.x = x;
 		this.y = y;
 	}
