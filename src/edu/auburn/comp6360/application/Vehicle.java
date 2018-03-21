@@ -41,9 +41,13 @@ public abstract class Vehicle {
 	
 	private RbaCache cache;
 	private List<Node> neighbors;
-	
+
 	
 	private ExecutorService executor;
+
+	private BroadcastThread bt;
+	private ConfigThread ct;
+	
 	
 	public Vehicle() {
 		gps = new GPS();
@@ -51,7 +55,7 @@ public abstract class Vehicle {
 		packetSeqNum = 0;
 		try {
 			hostName = InetAddress.getLocalHost().getHostName().substring(0, 6);
-		} catch (UnknownHostException e) {
+		} catch (UnknownHostException e) {			
 			e.printStackTrace();
 		}
 	}
@@ -63,9 +67,11 @@ public abstract class Vehicle {
 		this.packetSeqNum = 0;
 		try {
 			hostName = InetAddress.getLocalHost().getHostName().substring(0, 6);
+//			System.out.println(hostName);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
+		this.selfNode = new Node(nodeID, hostName, 10021, gps.getX(), gps.getY());
 	
 	}
 	
@@ -139,7 +145,7 @@ public abstract class Vehicle {
 		PacketHeader header = new PacketHeader(source, prevHop, sn, 1);
 		VehicleInfo vInfo = new VehicleInfo(gps, velocity, acceleration);
 		Packet newPacket = new Packet(header, vInfo);
-		sendPacket(newPacket, neighbors);
+//		sendPacket(newPacket, neighbors);
 	}
 	
 	
@@ -168,19 +174,20 @@ public abstract class Vehicle {
 		long currentTime = System.currentTimeMillis();
 		double dt = (currentTime - this.timeStamp) / 1000.0; // in seconds
 		this.timeStamp = currentTime;
+//		System.out.println(dt);
 		setGPS(VehicleHandler.computeGPS(gps, velocity, acceleration, dt));
 		setVelocity(VehicleHandler.computeVelocity(velocity, acceleration, dt));
 		setAcceleration();
 	}
 	
-	public void start() {
-		BroadcastThread bt = new BroadcastThread();
+	public void startAll() {
+		bt = new BroadcastThread();
+		ct = new ConfigThread();
 		bt.start();
-		ConfigThread ct = new ConfigThread();
 		ct.start();
+//		System.out.println("????");
 	}
 
-	
 	public class BroadcastThread extends Thread {
 		
 		@Override

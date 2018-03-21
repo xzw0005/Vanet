@@ -1,11 +1,10 @@
 package edu.auburn.comp6360.application;
 
-
-
 public class LeadingTruck extends Vehicle {	
 
 	public double INIT_X = 10;
 	public double INIT_Y = 0; // in the right lane
+	public double INIT_V = 30;
 	
 	public LeadingTruck() {
 		super();
@@ -16,6 +15,7 @@ public class LeadingTruck extends Vehicle {
 		this.setGPS(new GPS(INIT_X, INIT_Y));
 		this.setWidth(Vehicle.TRUCK_WIDTH);
 		this.setLength(Vehicle.TRUCK_LENGTH);
+		this.setVelocity(INIT_V);
 	}
 	
   /**

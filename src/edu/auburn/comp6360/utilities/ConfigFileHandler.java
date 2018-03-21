@@ -45,8 +45,10 @@ public class ConfigFileHandler {
 			double x = Double.parseDouble(lineArr[4]);
 			double y = Double.parseDouble(lineArr[5]);
 			Node node = new Node(nodeID, host, port, x, y);
-			for (int i = 7; i < line.length(); i++) 
-				node.addLink(Integer.parseInt(lineArr[i]));
+			if (lineArr.length > 7) {
+				for (int i = 7; i < line.length(); i++) 
+					node.addLink(Integer.parseInt(lineArr[i]));				
+			}
 			nodesMap.put(nodeID, node);
 		}
 		return nodesMap;

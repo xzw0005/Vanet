@@ -63,16 +63,8 @@ public class Node {
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer("Node ");
-		sb.append(getNodeID());		
-		sb.append(" ");
-		sb.append(getHostname());
-		sb.append(", ");
-		sb.append(getPortNumber());
-		sb.append(" ");
-		sb.append(getXcoord());
-		sb.append(" ");
-		sb.append(getYcoord());
-		sb.append(" links");
+		sb.append(getNodeID() + " " + getHostname() + ", " + getPortNumber() + " ");		
+		sb.append(String.format("%.1f %.1f links", getXcoord(), getYcoord()));
 		for (int link: getLinks()) {
 			sb.append(" ");
 			sb.append(link);
