@@ -28,7 +28,7 @@ public class ConfigFileHandler {
 	}
 
 	
-	public List<Node> readConfigFile(String filename) {
+	public static List<Node> readConfigFile(String filename) {
 		List<Node> allNodes = new ArrayList<Node>();		
 		List<String> lines = null;
 		try {
@@ -78,6 +78,25 @@ public class ConfigFileHandler {
 		} finally {
 			rwLock.writeLock().unlock();
 		}
+	}
+	
+	public static void reset(String filename) {
+//		File configFile = new File(filename);
+//		if (configFile.exists()) {
+//			configFile.delete();
+//		}
+		try {
+			FileWriter fw = new FileWriter(filename);
+			fw.close();			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static int newNodeID(String filename) {
+		List<Node> allNodes = readConfigFile(filename);
+		int numNodes = allNodes.size();
+		return numNodes + 1;
 	}
 	
 }

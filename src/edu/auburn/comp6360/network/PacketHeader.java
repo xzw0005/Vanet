@@ -13,9 +13,11 @@ public class PacketHeader implements Serializable {
 		
 	}
 	
-	public PacketHeader(int source, int prevHop) {
+	public PacketHeader(int source, int prevHop, int sn, int type) {
 		this.source = source;
 		this.prevHop = prevHop;
+		this.seqNum = sn;
+		this.packetType = type;
 	}
 	
 	public int getSeqNum() {
@@ -34,13 +36,13 @@ public class PacketHeader implements Serializable {
 		return this.packetType;
 	}
 	
-	public void setSeqNum(int sn) {
-		this.seqNum = sn;
-	}
-	
-	public void setSource(int sourceNodeID) {
-		this.source = sourceNodeID;
-	}
+//	public void setSeqNum(int sn) {
+//		this.seqNum = sn;
+//	}
+//	
+//	public void setSource(int sourceNodeID) {
+//		this.source = sourceNodeID;
+//	}
 	
 	public void setPrevHop(int nodeID) {
 		this.prevHop = nodeID;

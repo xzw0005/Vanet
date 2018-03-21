@@ -10,6 +10,14 @@ import edu.auburn.comp6360.network.VehicleInfo;
 
 public class Vehicle {
 	
+	public enum VType {LEAD, FOLLOW};
+	public static final double TRUCK_WIDTH = 4;
+	public static final double TRUCK_LENGTH = 10;
+	public static final double CAR_WIDTH = 3;
+	public static final double CAR_LENGTH = 5;
+	public static final int LEFT = 1;
+	public static final int RIGHT = 0;
+	
 	private double length;
 	private double width;
 
@@ -28,21 +36,14 @@ public class Vehicle {
 	
 	private ExecutorService executor;
 	
-	
 	public Vehicle() {
 		gps = new GPS();
-
 		packetSeqNum = 0;
 	}
 	
-	public Vehicle(byte[] addr, GPS initGps, double initSpeed, double initAcc, int nodeID) {
-		this.address = addr;
-		this.gps = initGps;
-		this.velocity = initSpeed;
-		this.acceleration = initAcc;
+	public Vehicle(int nodeID) {
 		this.nodeID = nodeID;
-		
-		
+		this.gps = new GPS();
 		this.packetSeqNum = 0;
 	}
 	
@@ -101,28 +102,32 @@ public class Vehicle {
 	
 	
 	public void inreaseSeqNum() {
-		this.packetSeqNum++;
+		++this.packetSeqNum;
 	}
 	
 	
 	synchronized public void initPacket() {
-		PacketHeader header = new PacketHeader(nodeID, nodeID);
+		int source = this.nodeID;
+		int prevHop = this.nodeID;
+		int sn = ++this.packetSeqNum;
+		PacketHeader header = new PacketHeader(source, prevHop, sn, 1);
 		VehicleInfo vInfo = new VehicleInfo(gps, velocity, acceleration);
+		Packet newPacket = new Packet(header, vInfo);
+		sendPacket(newPacket, neighbors);
 	}
-	
 	
 	
 	/*
 	 * Upon received packet, forward to its neighbors (except previous hop)
 	 */
-	synchronized public void forwardPacket(Packet packet) {
+	synchronized public void sendPacket(Packet packet, List<Node> receivers) {
 		PacketHeader header = packet.getHeader();
 		int source = header.getSource();
 		int sn = header.getSeqNum();
 		int prevHop = header.getPrevHop();
 		
 		if (cache.updatePacketSeqNum(source, sn)) {
-			for (Node nb : neighbors) {
+			for (Node nb : receivers) {
 				if (nb.getNodeID() != prevHop) {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
@@ -131,6 +136,10 @@ public class Vehicle {
 				}
 			}
 		}
+	}
+	
+	public void start() {
+		
 	}
 	
 	

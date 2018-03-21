@@ -18,6 +18,11 @@ public class Packet implements Serializable {
 		
 	}
 	
+	public Packet(PacketHeader header, VehicleInfo vInfo) {
+		this.header = header;
+		this.vInfo = vInfo;
+	}
+	
 	public void setHead(PacketHeader header) {
 		this.header = header;
 	}
