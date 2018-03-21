@@ -7,6 +7,7 @@ import edu.auburn.comp6360.network.ClientThread;
 import edu.auburn.comp6360.network.Packet;
 import edu.auburn.comp6360.network.PacketHeader;
 import edu.auburn.comp6360.network.VehicleInfo;
+import edu.auburn.comp6360.utilities.VehicleHandler;
 
 public class Vehicle {
 	
@@ -24,6 +25,7 @@ public class Vehicle {
 	private GPS gps;
 	private double velocity;
 	private double acceleration;
+	private long timeStamp;	
 	
 	private byte[] address;
 	private int packetSeqNum;
@@ -38,12 +40,14 @@ public class Vehicle {
 	
 	public Vehicle() {
 		gps = new GPS();
+		timeStamp = System.currentTimeMillis();
 		packetSeqNum = 0;
 	}
 	
 	public Vehicle(int nodeID) {
 		this.nodeID = nodeID;
 		this.gps = new GPS();
+		this.timeStamp = System.currentTimeMillis();
 		this.packetSeqNum = 0;
 	}
 	
@@ -68,6 +72,10 @@ public class Vehicle {
 		this.velocity = newSpeed;
 	}
 	
+	public void setAcceleration() {
+		this.setAcceleration(Math.random() * 2 - 1);
+	}
+	
 	public void setAcceleration(double newAcc) {
 		this.acceleration = newAcc;
 	}
@@ -84,7 +92,7 @@ public class Vehicle {
 		return this.address;
 	}
 	
-	public GPS getGps() {
+	public GPS getGPS() {
 		return this.gps;
 	}
 	
@@ -138,18 +146,29 @@ public class Vehicle {
 		}
 	}
 	
+	public void update() {
+		long currentTime = System.currentTimeMillis();
+		double dt = (currentTime - this.timeStamp) / 1000.0; // in seconds
+		this.timeStamp = currentTime;
+		setGPS(VehicleHandler.computeGPS(gps, velocity, acceleration, dt));
+		this.setVelocity(VehicleHandler.computeVelocity(velocity, acceleration, dt));
+//		setAcceleration();
+	}
+	
 //	public void start() {
 //
 //	}
 
 	
-	private class SensorThread extends Thread {
+	private class BroadcastThread extends Thread {
 		
 		@Override
 		public void run() {
 			while (true) {
 				try {
-					
+					initPacket();
+					update();
+					Thread.sleep(10);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
