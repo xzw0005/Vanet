@@ -1,7 +1,6 @@
 package edu.auburn.comp6360.application;
 
 import java.util.List;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -34,11 +33,11 @@ public class Node {
 		return port;
 	}
 	
-	public double getXcoord() {
+	public double getX() {
 		return this.x;
 	}
 	
-	public double getYcoord() {
+	public double getY() {
 		return this.y;
 	}
 	
@@ -64,7 +63,7 @@ public class Node {
 	public String toString() {
 		StringBuffer sb = new StringBuffer("Node ");
 		sb.append(getNodeID() + " " + getHostname() + ", " + getPortNumber() + " ");		
-		sb.append(String.format("%.1f %.1f links", getXcoord(), getYcoord()));
+		sb.append(String.format("%.1f %.1f links", getX(), getY()));
 		for (int link: getLinks()) {
 			sb.append(" ");
 			sb.append(link);

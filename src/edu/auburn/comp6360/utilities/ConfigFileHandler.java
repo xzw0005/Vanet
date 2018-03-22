@@ -38,16 +38,17 @@ public class ConfigFileHandler {
 		
 		for (String line : lines) {
 			//line = "Node 2 tux055, 10011 80 120 links 1 3 4";
-			String[] lineArr = line.split(" ");
-			int nodeID = Integer.parseInt(lineArr[1]);
-			String host = lineArr[2].trim().substring(0, 6);
-			int port = Integer.parseInt(lineArr[3]);
-			double x = Double.parseDouble(lineArr[4]);
-			double y = Double.parseDouble(lineArr[5]);
+			String[] lineArray = line.split(" ");
+			int nodeID = Integer.parseInt(lineArray[1]);
+			String host = lineArray[2].trim();
+			host = host.substring(0, host.indexOf(",") - 1);
+			int port = Integer.parseInt(lineArray[3]);
+			double x = Double.parseDouble(lineArray[4]);
+			double y = Double.parseDouble(lineArray[5]);
 			Node node = new Node(nodeID, host, port, x, y);
-			if (lineArr.length > 7) {
+			if (lineArray.length > 7) {
 				for (int i = 7; i < line.length(); i++) 
-					node.addLink(Integer.parseInt(lineArr[i]));				
+					node.addLink(Integer.parseInt(lineArray[i]));			
 			}
 			nodesMap.put(nodeID, node);
 		}
@@ -58,16 +59,10 @@ public class ConfigFileHandler {
 		SortedMap<Integer, Node> nodesMap = readConfigFile();
 		nodesMap.put(updatedNode.getNodeID(), updatedNode);
 		try {
-			FileWriter fw = new FileWriter(filename);	
+			PrintWriter pw = new PrintWriter(filename);
 			rwLock.writeLock().lock();
-			nodesMap.forEach((k, v) -> {
-				try {
-					fw.write(v.toString());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}); 
-			fw.close();
+			nodesMap.forEach((k, v) -> { pw.println(v.toString());});
+			pw.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {

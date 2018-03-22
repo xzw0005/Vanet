@@ -18,25 +18,26 @@ public abstract class Vehicle {
 	
 	public static final int SERVER_PORT = 10121;
 	
-	private double length;
-	private double width;
+	protected double length;
+	protected double width;
 
-	private GPS gps;
-	private double velocity;
-	private double acceleration;
-	private long timeStamp;	
+	protected GPS gps;
+	protected double velocity;
+	protected double acceleration;
+	protected long timeStamp;	
 	
 //	private byte[] address;
-	String hostName;
-	private int packetSeqNum;
+	protected String hostName;
+	protected int packetSeqNum;
 	
-	private int nodeID;	
-	private Node selfNode; 
-	private SortedMap<Integer, Node> nodesMap; // from config file
+	protected int nodeID;	
+	protected Node selfNode; 
+	protected SortedMap<Integer, Node> nodesMap; // from config file
 	
-	private RbaCache cache;
-	private List<Node> neighbors;
+	protected RbaCache cache;
+	protected List<Node> neighbors;
 
+	protected boolean inRoadTrain;
 	
 	private ExecutorService executor;
 
@@ -50,7 +51,9 @@ public abstract class Vehicle {
 		timeStamp = System.currentTimeMillis();
 		packetSeqNum = 0;
 		try {
-			hostName = InetAddress.getLocalHost().getHostName().substring(0, 6);
+			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
+			if (hostName.indexOf(".") > -1)
+				hostName = hostName.substring(0, hostName.indexOf("."));
 		} catch (UnknownHostException e) {			
 			e.printStackTrace();
 		}
@@ -62,13 +65,15 @@ public abstract class Vehicle {
 		this.timeStamp = System.currentTimeMillis();
 		this.packetSeqNum = 0;
 		try {
-			hostName = InetAddress.getLocalHost().getHostName().substring(0, 6);
+			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
+			if (hostName.indexOf(".") > -1)
+				hostName = hostName.substring(0, hostName.indexOf("."));
 			System.out.println(hostName);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
 		this.selfNode = new Node(nodeID, hostName, SERVER_PORT, gps.getX(), gps.getY());
-	
+		this.nodesMap.put(nodeID, selfNode);
 	}
 	
 	public void setLength(double length) {
@@ -145,6 +150,10 @@ public abstract class Vehicle {
 //		sendPacket(newPacket, neighbors);
 	}
 	
+	
+	public void receivePacket() {
+		
+	}
 	
 	/*
 	 * Upon received packet, forward to its neighbors (except previous hop)
