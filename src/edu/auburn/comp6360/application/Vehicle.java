@@ -9,19 +9,14 @@ import java.util.concurrent.ExecutorService;
 import edu.auburn.comp6360.network.ClientThread;
 import edu.auburn.comp6360.network.Packet;
 import edu.auburn.comp6360.network.PacketHeader;
+import edu.auburn.comp6360.network.ServerThread;
 import edu.auburn.comp6360.network.VehicleInfo;
 import edu.auburn.comp6360.utilities.ConfigFileHandler;
 import edu.auburn.comp6360.utilities.VehicleHandler;
 
 public abstract class Vehicle {
 	
-	public enum VType {LEAD, FOLLOW};
-	public static final double TRUCK_WIDTH = 4;
-	public static final double TRUCK_LENGTH = 10;
-	public static final double CAR_WIDTH = 3;
-	public static final double CAR_LENGTH = 5;
-	public static final int LEFT = 1;
-	public static final int RIGHT = 0;
+	public static final int SERVER_PORT = 10121;
 	
 	private double length;
 	private double width;
@@ -47,6 +42,7 @@ public abstract class Vehicle {
 
 	private BroadcastThread bt;
 	private ConfigThread ct;
+	private ServerThread st;
 	
 	
 	public Vehicle() {
@@ -67,11 +63,11 @@ public abstract class Vehicle {
 		this.packetSeqNum = 0;
 		try {
 			hostName = InetAddress.getLocalHost().getHostName().substring(0, 6);
-//			System.out.println(hostName);
+			System.out.println(hostName);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		this.selfNode = new Node(nodeID, hostName, 10021, gps.getX(), gps.getY());
+		this.selfNode = new Node(nodeID, hostName, SERVER_PORT, gps.getX(), gps.getY());
 	
 	}
 	
@@ -86,6 +82,7 @@ public abstract class Vehicle {
 //	public void setAddr(byte[] localAddr) {
 //		this.address = localAddr;
 //	}
+	
 	
 	public void setGPS(GPS newGps) {
 		this.gps.setX(newGps.getX());
@@ -183,8 +180,10 @@ public abstract class Vehicle {
 	public void startAll() {
 		bt = new BroadcastThread();
 		ct = new ConfigThread();
+		st = new ServerThread(SERVER_PORT);
 		bt.start();
 		ct.start();
+		st.run();
 //		System.out.println("????");
 	}
 
