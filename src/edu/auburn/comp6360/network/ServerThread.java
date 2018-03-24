@@ -1,9 +1,9 @@
 package edu.auburn.comp6360.network;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
+//import java.net.InetAddress;
 import java.net.SocketException;
 
 public class ServerThread implements Runnable {
@@ -24,10 +24,10 @@ public class ServerThread implements Runnable {
 			listening = true;
 			while (listening) {
 				byte[] data = new byte[MAX_PACKET_SIZE];
-				DatagramPacket recvPacket = new DatagramPacket(data, MAX_PACKET_SIZE);
+				DatagramPacket packetReceived = new DatagramPacket(data, MAX_PACKET_SIZE);
 				try {
-					socket.receive(recvPacket);
-				} catch (Exception e) {
+					socket.receive(packetReceived);
+				} catch (IOException e) {
 					e.printStackTrace();
 					stopListening();
 				}

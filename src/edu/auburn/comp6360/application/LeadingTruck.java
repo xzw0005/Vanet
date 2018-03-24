@@ -1,8 +1,11 @@
 package edu.auburn.comp6360.application;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
+
+import edu.auburn.comp6360.application.Vehicle.ConfigThread;
+import edu.auburn.comp6360.application.Vehicle.SendRegularPacketThread;
+import edu.auburn.comp6360.network.ServerThread;
 
 public class LeadingTruck extends Vehicle {	
 
@@ -12,21 +15,19 @@ public class LeadingTruck extends Vehicle {
 	public static double INIT_Y = 0; // in the Right Lane
 	public static double INIT_V = 30;
 	
-	private Queue<Node> roadTrain = (Queue<Node>) new ArrayList<Node>();
+	private List<Integer> roadTrainList;
 	
-	
-	public LeadingTruck(int nodeId) {
-		super(nodeId);
+	public LeadingTruck(int nodeID) {
+		super(nodeID);
 		this.setGPS(new GPS(INIT_X, INIT_Y));
 		this.setWidth(TRUCK_WIDTH);
 		this.setLength(TRUCK_LENGTH);
 		this.setVelocity(INIT_V);
-		this.roadTrain.addLast(nodesMap.get(nodeId));
+		
+		roadTrainList = new LinkedList<Integer>();
+		roadTrainList.add(nodeID);
 	}
 
-//	public void formRoadTrain() {
-//		inRoadTrain = true;		
-//	}
 	
   /**
    * Obtain the acceleration for the Leading Vehicle (every 10 ms)
@@ -39,11 +40,23 @@ public class LeadingTruck extends Vehicle {
 		this.setAcceleration(Math.random() * 2 - 1);
 	}
 	
-	
-	public void start() {
+	@Override
+	public void startAll() {
+		super.startAll();
 		
+		RoadTrainHandlerThread train = new RoadTrainHandlerThread();
+		train.start();
 	}
 	
+	
+	public class RoadTrainHandlerThread extends Thread {
+		
+		@Override
+		public void run() {
+			
+		}
+
+	}
 	
 	
 	

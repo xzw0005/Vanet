@@ -10,6 +10,10 @@ public class FollowingVehicle extends Vehicle {
 	public double INIT_Y = 5; // in the Left Lane
 	public double RANDOM_V = 25 + Math.random() * 10;
 	
+	private int prev;
+	private int post;
+	private boolean isInRoadTrain;
+	
 	public FollowingVehicle(int nodeId) {
 		super(nodeId);
 		this.setGPS(new GPS(RANDOM_X, INIT_Y));
@@ -52,8 +56,17 @@ public class FollowingVehicle extends Vehicle {
 //			System.err.println("Invalid lane setting.");
 //	}
 	
+	public void joinRoadTrain() {
+		
+		gps.setY(0); 	// merge to the right lane
+		isInRoadTrain = true;
+	}
 	
-	
+	public void leaveRoadTrain() {
+		
+		gps.setY(5);	// switch to the left lane
+		isInRoadTrain = false;
+	}
 	
 	
 }

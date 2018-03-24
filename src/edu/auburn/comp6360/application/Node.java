@@ -1,8 +1,7 @@
 package edu.auburn.comp6360.application;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public class Node {
 
@@ -10,7 +9,7 @@ public class Node {
 	private String hostname;
 	private int port;
 	private double x, y;
-	private List<Integer> links;
+	private SortedSet<Integer> links;
 	
 	public Node(int nodeID, String host, int portNumber, double xCoord, double yCoord) {
 		this.nodeID = nodeID;
@@ -18,7 +17,7 @@ public class Node {
 		this.port = portNumber;
 		this.x = xCoord; 
 		this.y = yCoord; 
-		this.links = new ArrayList<Integer>();
+		this.links = new TreeSet<Integer>();
 	}
 	
 	public int getNodeID() {
@@ -41,23 +40,27 @@ public class Node {
 		return this.y;
 	}
 	
-	synchronized public List<Integer> getLinks() {
-		return links;
-	}
-	
-	public void addLink(int link) {
-		links.add(link);
-		Collections.sort(links);
-	}
-	
-	public boolean removeLink(int link) {
-		return links.remove(Integer.valueOf(link));
+	public GPS getGPS() {
+		return new GPS(this.x, this.y);
 	}
 	
 	public void setGPS(GPS gps) {
 		this.x = gps.getX();
 		this.y = gps.getY();
 	}
+
+	synchronized public SortedSet<Integer> getLinks() {
+		return links;
+	}
+	
+	public void addLink(int link) {
+		links.add(link);
+	}
+	
+	public boolean removeLink(int link) {
+		return links.remove(Integer.valueOf(link));
+	}
+	
 	
 	@Override
 	public String toString() {

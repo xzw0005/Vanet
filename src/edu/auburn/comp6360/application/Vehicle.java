@@ -1,17 +1,21 @@
 package edu.auburn.comp6360.application;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.List;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.concurrent.ExecutorService;
 
 import edu.auburn.comp6360.network.ClientThread;
 import edu.auburn.comp6360.network.Packet;
 import edu.auburn.comp6360.network.PacketHeader;
-import edu.auburn.comp6360.network.ServerThread;
 import edu.auburn.comp6360.network.VehicleInfo;
 import edu.auburn.comp6360.utilities.ConfigFileHandler;
+import edu.auburn.comp6360.utilities.PacketHandler;
 import edu.auburn.comp6360.utilities.VehicleHandler;
 
 public abstract class Vehicle {
@@ -26,7 +30,6 @@ public abstract class Vehicle {
 	protected double acceleration;
 	protected long timeStamp;	
 	
-//	private byte[] address;
 	protected String hostName;
 	protected int packetSeqNum;
 	
@@ -35,13 +38,12 @@ public abstract class Vehicle {
 	protected SortedMap<Integer, Node> nodesMap; // from config file
 	
 	protected RbaCache cache;
-	protected List<Node> neighbors;
 
 	protected boolean inRoadTrain;
 	
 	private ExecutorService executor;
 
-	private BroadcastThread bt;
+	private SendRegularPacketThread bt;
 	private ConfigThread ct;
 	private ServerThread st;
 	
@@ -147,30 +149,41 @@ public abstract class Vehicle {
 		PacketHeader header = new PacketHeader(source, prevHop, sn, 1);
 		VehicleInfo vInfo = new VehicleInfo(gps, velocity, acceleration);
 		Packet newPacket = new Packet(header, vInfo);
-//		sendPacket(newPacket, neighbors);
+		sendPacket(newPacket);
 	}
 	
 	
-	public void receivePacket() {
-		
+	synchronized public void receivePacket(Packet packetReceived) {
+		PacketHeader header = packetReceived.getHeader();
+		int source = header.getSource();
+		int sn = header.getSeqNum();
+		if (cache.updatePacketSeqNum(source, sn)) {
+			VehicleInfo vInfo = packetReceived.getVehicleInfo();
+			VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());
+			sendPacket(packetReceived);
+		}		
 	}
 	
 	/*
 	 * Upon received packet, forward to its neighbors (except previous hop)
 	 */
-	synchronized public void sendPacket(Packet packet, List<Node> receivers) {
-		PacketHeader header = packet.getHeader();
+	synchronized public void sendPacket(Packet packetToSend) {
+		PacketHeader header = packetToSend.getHeader();
 		int source = header.getSource();
 		int sn = header.getSeqNum();
 		int prevHop = header.getPrevHop();
 		
+		SortedSet<Integer> neighbors = selfNode.getLinks();
+		if (neighbors.isEmpty()) 
+			return;
 		if (cache.updatePacketSeqNum(source, sn)) {
-			for (Node nb : receivers) {
+			for (int nbID : neighbors) {
+				Node nb = nodesMap.get(nbID);
 				if (nb.getNodeID() != prevHop) {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
-					packet.getHeader().setPrevHop(this.nodeID);
-					executor.execute(new ClientThread(nbHostname, nbPort, packet));
+					packetToSend.getHeader().setPrevHop(this.nodeID);
+					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));
 				}
 			}
 		}
@@ -187,7 +200,7 @@ public abstract class Vehicle {
 	}
 	
 	public void startAll() {
-		bt = new BroadcastThread();
+		bt = new SendRegularPacketThread();
 		ct = new ConfigThread();
 		st = new ServerThread(SERVER_PORT);
 		bt.start();
@@ -196,7 +209,7 @@ public abstract class Vehicle {
 //		System.out.println("????");
 	}
 
-	public class BroadcastThread extends Thread {
+	public class SendRegularPacketThread extends Thread {
 		
 		@Override
 		public void run() {
@@ -229,6 +242,48 @@ public abstract class Vehicle {
 			}
 		}
 	}
+	
+	
+	public class ServerThread implements Runnable {
+		public final int MAX_PACKET_SIZE = 4096;
+		private int port;
+		private boolean listening;
+		
+		public ServerThread(int port) {
+			this.port = port;
+			this.listening = false;
+		}
+		
+		@Override
+		public void run() {
+			try {
+				DatagramSocket socket = new DatagramSocket(port);
+				listening = true;
+				while (listening) {
+					byte[] packetData = new byte[MAX_PACKET_SIZE];
+					DatagramPacket datagramPacketReceived = new DatagramPacket(packetData, MAX_PACKET_SIZE);
+					try {
+						socket.receive(datagramPacketReceived);
+						packetData = datagramPacketReceived.getData();
+						Packet packetReceived = PacketHandler.packetDessembler(packetData);
+						receivePacket(packetReceived);
+					} catch (IOException e) {
+						e.printStackTrace();
+						stopListening();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			} catch (SocketException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		public void stopListening() {
+			this.listening = false;
+		}
+	}
+
 	
 	
 	
