@@ -3,9 +3,9 @@ package edu.auburn.comp6360.application;
 import java.util.LinkedList;
 import java.util.List;
 
-import edu.auburn.comp6360.application.Vehicle.ConfigThread;
-import edu.auburn.comp6360.application.Vehicle.SendRegularPacketThread;
-import edu.auburn.comp6360.network.ServerThread;
+//import edu.auburn.comp6360.application.Vehicle.ConfigThread;
+//import edu.auburn.comp6360.application.Vehicle.SendRegularPacketThread;
+//import edu.auburn.comp6360.network.ServerThread;
 
 public class LeadingTruck extends Vehicle {	
 

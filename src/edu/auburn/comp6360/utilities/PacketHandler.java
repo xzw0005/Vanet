@@ -11,12 +11,12 @@ import edu.auburn.comp6360.network.Packet;
 public class PacketHandler {
 
 	
-	public static byte[] packetAssembler(Packet packet) throws Exception {
+	public static byte[] packetAssembler(Packet packet) {
 		ByteArrayOutputStream bos = null;
 		ObjectOutputStream oos = null;
 		byte[] packetData = null;
+		bos = new ByteArrayOutputStream();
 		try {
-			bos = new ByteArrayOutputStream();
 			oos = new ObjectOutputStream(bos);
 			oos.writeObject((Object)packet);
 			oos.flush();
@@ -29,15 +29,16 @@ public class PacketHandler {
 		return packetData;
 	}
 	
-	public static Packet packetDessembler(byte[] packetData) throws Exception {
+	public static Packet packetDessembler(byte[] packetData) {
 		ByteArrayInputStream bis = null;
 		ObjectInputStream ois = null;
 		Object packetObject = null;
+
+		bis = new ByteArrayInputStream(packetData);
 		try {
-			bis = new ByteArrayInputStream(packetData);
 			ois = new ObjectInputStream(bis);
 			packetObject = ois.readObject();
-		} catch (Exception e) {
+		} catch (ClassNotFoundException | IOException e) {
 			e.printStackTrace();
 		}
 		return (Packet)packetObject;

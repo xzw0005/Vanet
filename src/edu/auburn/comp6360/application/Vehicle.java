@@ -8,6 +8,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 
 import edu.auburn.comp6360.network.ClientThread;
@@ -20,6 +21,7 @@ import edu.auburn.comp6360.utilities.VehicleHandler;
 
 public abstract class Vehicle {
 	
+	public static final String filename = "config.txt";
 	public static final int SERVER_PORT = 10121;
 	
 	protected double length;
@@ -49,6 +51,7 @@ public abstract class Vehicle {
 	
 	
 	public Vehicle() {
+		
 		gps = new GPS();
 		timeStamp = System.currentTimeMillis();
 		packetSeqNum = 0;
@@ -61,11 +64,11 @@ public abstract class Vehicle {
 		}
 	}
 	
-	public Vehicle(int nodeID) {
-		this.nodeID = nodeID;
-		this.gps = new GPS();
-		this.timeStamp = System.currentTimeMillis();
-		this.packetSeqNum = 0;
+	public Vehicle(int nodeId) {
+		nodeID = nodeId;
+		gps = new GPS();
+		timeStamp = System.currentTimeMillis();
+		packetSeqNum = 0;
 		try {
 			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
 			if (hostName.indexOf(".") > -1)
@@ -74,8 +77,9 @@ public abstract class Vehicle {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		this.selfNode = new Node(nodeID, hostName, SERVER_PORT, gps.getX(), gps.getY());
-		this.nodesMap.put(nodeID, selfNode);
+		selfNode = new Node(nodeID, hostName, SERVER_PORT, gps.getX(), gps.getY());
+		nodesMap = new TreeMap<Integer, Node>();
+		nodesMap.put(nodeID, selfNode);
 	}
 	
 	public void setLength(double length) {
@@ -270,8 +274,7 @@ public abstract class Vehicle {
 					} catch (IOException e) {
 						e.printStackTrace();
 						stopListening();
-					} catch (Exception e) {
-						e.printStackTrace();
+						socket.close();
 					}
 				}
 			} catch (SocketException e) {

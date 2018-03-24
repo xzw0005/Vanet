@@ -30,6 +30,7 @@ public class ServerThread implements Runnable {
 				} catch (IOException e) {
 					e.printStackTrace();
 					stopListening();
+					socket.close();
 				}
 			}
 		} catch (SocketException e) {

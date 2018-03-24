@@ -57,12 +57,14 @@ public class FollowingVehicle extends Vehicle {
 //	}
 	
 	public void joinRoadTrain() {
+		// TODO
 		
 		gps.setY(0); 	// merge to the right lane
 		isInRoadTrain = true;
 	}
 	
 	public void leaveRoadTrain() {
+		// TODO
 		
 		gps.setY(5);	// switch to the left lane
 		isInRoadTrain = false;
