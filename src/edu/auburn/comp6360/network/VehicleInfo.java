@@ -49,6 +49,6 @@ public class VehicleInfo implements Serializable {
 	}
 	
 	public String toString() {
-		return "GPS = (" + getX() + ", " + getY() + "), speed = " + getVelocity() + ", acceleration = " + getAcceleration() + ".\n";
+		return String.format("GPS = (%.1f, %d), speed = %.2f, acceleration = %.3f.\n", getX(), getY(), getVelocity(), getAcceleration());
 	}
 }

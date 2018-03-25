@@ -3,6 +3,9 @@ package edu.auburn.comp6360.application;
 import java.util.LinkedList;
 import java.util.List;
 
+import edu.auburn.comp6360.application.Vehicle.BroadcastThread;
+import edu.auburn.comp6360.application.Vehicle.ConfigThread;
+import edu.auburn.comp6360.application.Vehicle.ServerThread;
 import edu.auburn.comp6360.network.Header;
 import edu.auburn.comp6360.network.Packet;
 import edu.auburn.comp6360.network.VehicleInfo;
@@ -45,12 +48,19 @@ public class LeadingTruck extends Vehicle {
 		this.setAcceleration(Math.random() * 2 - 1);
 	}
 	
-	@Override
 	public void startAll() {
-		super.startAll();
-		
+//		super.startAll();
 //		RoadTrainHandlerThread train = new RoadTrainHandlerThread();
 //		train.start();
+		
+		bt = new BroadcastThread();
+		ct = new ConfigThread();
+		st = new ServerThread(SERVER_PORT+nodeID);
+
+		bt.start();
+		ct.start();
+		st.run();
+		
 	}
 	
 	

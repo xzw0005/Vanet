@@ -13,9 +13,14 @@ public class UnitTests {
 
 	public static void main(String[] args) throws UnknownHostException {
 
-		SubC s = new SubC();
-		s.md();
-		s.mp();
+		KeyboardListener kl = new KeyboardListener();
+		kl.start();
+		
+		
+		
+//		SubC s = new SubC();
+//		s.md();
+//		s.mp();
 		
 		
 //		long clock = System.currentTimeMillis();

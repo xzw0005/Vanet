@@ -47,9 +47,9 @@ public abstract class Vehicle {
 	
 	protected ExecutorService executor;
 
-	private BroadcastThread bt;
-	private ConfigThread ct;
-	private ServerThread st;
+	protected BroadcastThread bt;
+	protected ConfigThread ct;
+	protected ServerThread st;
 	
 	
 	public Vehicle() {
@@ -185,9 +185,9 @@ public abstract class Vehicle {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
 					packetToSend.getHeader().setPrevHop(this.nodeID);
-//					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
-//					ct.run();
-					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
+					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
+					ct.run();
+//					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
 				}
 			}
 		}				
@@ -228,15 +228,15 @@ public abstract class Vehicle {
 		setAcceleration();
 	}
 	
-	public void startAll() {
-		bt = new BroadcastThread();
-		ct = new ConfigThread();
-		st = new ServerThread(SERVER_PORT+nodeID);
-
-		bt.start();
-		ct.start();
-		st.run();
-	}
+//	public void startAll() {
+//		bt = new BroadcastThread();
+//		ct = new ConfigThread();
+//		st = new ServerThread(SERVER_PORT+nodeID);
+//
+//		bt.start();
+//		ct.start();
+//		st.run();
+//	}
 
 	public class BroadcastThread extends Thread {
 		
@@ -267,10 +267,6 @@ public abstract class Vehicle {
 					nodesMap = config.writeConfigFile(selfNode);
 					
 //					System.out.println("config");
-//					System.out.println("@@@@@@ Config Thread's Nodes Map: ");
-//					for (SortedMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {
-//						System.out.println(entry);
-//					}
 					
 					Thread.sleep(500);
 				} catch (Exception e) {

@@ -2,6 +2,9 @@ package edu.auburn.comp6360.application;
 
 import java.util.Scanner;
 
+import edu.auburn.comp6360.application.Vehicle.BroadcastThread;
+import edu.auburn.comp6360.application.Vehicle.ConfigThread;
+import edu.auburn.comp6360.application.Vehicle.ServerThread;
 import edu.auburn.comp6360.network.ClientThread;
 
 
@@ -19,7 +22,7 @@ public class FollowingVehicle extends Vehicle {
 	private int post;
 	private boolean isInRoadTrain;
 	private boolean waitingAck;
-//	private KeyboardListenerThread kt;
+	private KeyboardListenerThread kt;
 	
 	public FollowingVehicle(int nodeId) {
 		super(nodeId);
@@ -55,13 +58,22 @@ public class FollowingVehicle extends Vehicle {
 	}		
 
 	
-	@Override
+//	@Override
 	public void startAll() {
-		super.startAll();
+//		super.startAll();
 		
-		executor.execute(new KeyboardListenerThread());			
-//		kt = new KeyboardListenerThread();
-//		kt.start();		
+//		executor.execute(new KeyboardListenerThread());			
+		kt = new KeyboardListenerThread();
+		
+		bt = new BroadcastThread();
+		ct = new ConfigThread();
+		st = new ServerThread(SERVER_PORT+nodeID);
+
+		kt.start();		
+		bt.start();
+		ct.start();
+		st.run();
+		
 	}
 	
 	@Override
@@ -100,9 +112,11 @@ public class FollowingVehicle extends Vehicle {
 		@Override
 		public void run() {
 			while (true) {
+				System.out.println("Keyboard Thread Listening...");
 				sc = new Scanner(System.in);
 				String request = sc.next();
 				System.out.println("@@" + request);
+
 				if ((!isInRoadTrain) && (request.equalsIgnoreCase("join"))) {
 					System.out.println("Node " + nodeID +  " is sending JOIN request...");
 					waitingAck = true;
@@ -113,6 +127,7 @@ public class FollowingVehicle extends Vehicle {
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
+						
 					}
 				} else if ((isInRoadTrain) && (request.equalsIgnoreCase("leave"))) {
 					System.out.println("Node " + nodeID +  " is sending LEAVE request...");
@@ -120,11 +135,16 @@ public class FollowingVehicle extends Vehicle {
 					while (waitingAck) {
 						initPacket("leave", 1);	// send LEAVE request to the leading truck
 						try {
-							Thread.sleep(250);
+							Thread.sleep(750);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
 					}
+				}
+				try {
+					Thread.sleep(5000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
 				}
 			}			
 		}

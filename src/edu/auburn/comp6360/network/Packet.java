@@ -49,7 +49,8 @@ public class Packet implements Serializable {
 //		sb.append("source: " + this.getHeader().getSource() + ", ");
 		Header header = this.getHeader();
 		sb.append(header.getPacketType() + " " + header.getSeqNum() + ", from " + header.getSource() + ".\t");
-		sb.append(this.getVehicleInfo().toString());
+		if (this.getVehicleInfo() != null)
+			sb.append(this.getVehicleInfo().toString());
 		return sb.toString(); 
 	}
 	
