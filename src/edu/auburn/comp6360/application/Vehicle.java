@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
-//import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ExecutorService;
 
 import edu.auburn.comp6360.network.ClientThread;
 import edu.auburn.comp6360.network.Packet;
@@ -45,11 +45,11 @@ public abstract class Vehicle {
 
 	protected boolean inRoadTrain;
 	
-//	private ExecutorService executor;
+	protected ExecutorService executor;
 
-	private SendNormalPacketThread npt;
-	private ConfigThread cft;
-	private ServerThread svt;
+	private BroadcastThread bt;
+	private ConfigThread ct;
+	private ServerThread st;
 	
 	
 	public Vehicle() {
@@ -165,6 +165,9 @@ public abstract class Vehicle {
 		}
 		this.cache.updatePacketSeqNum(source, type, sn, getNodeID());
 		sendPacket(packetToSend, source, sn, prevHop);
+		
+		if (!type.equals("normal"))
+			System.out.println(packetToSend.toString());
 	}
 	
 	public void initPacket() {
@@ -182,9 +185,9 @@ public abstract class Vehicle {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
 					packetToSend.getHeader().setPrevHop(this.nodeID);
-					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
-					ct.run();
-	//				executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
+//					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
+//					ct.run();
+					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
 				}
 			}
 		}				
@@ -226,17 +229,16 @@ public abstract class Vehicle {
 	}
 	
 	public void startAll() {
-		cft = new ConfigThread();
-		svt = new ServerThread(SERVER_PORT+nodeID);
-		npt = new SendNormalPacketThread();
+		bt = new BroadcastThread();
+		ct = new ConfigThread();
+		st = new ServerThread(SERVER_PORT+nodeID);
 
-		cft.start();
-		svt.run();
-		npt.start();
-//		System.out.println("????");
+		bt.start();
+		ct.start();
+		st.run();
 	}
 
-	public class SendNormalPacketThread extends Thread {
+	public class BroadcastThread extends Thread {
 		
 		@Override
 		public void run() {
@@ -244,6 +246,7 @@ public abstract class Vehicle {
 				try {
 					initPacket();
 					Thread.sleep(10);
+//					System.out.println("gogo");
 					sensorUpdate();
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -263,6 +266,7 @@ public abstract class Vehicle {
 					selfNode.setGPS(gps);
 					nodesMap = config.writeConfigFile(selfNode);
 					
+//					System.out.println("config");
 //					System.out.println("@@@@@@ Config Thread's Nodes Map: ");
 //					for (SortedMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {
 //						System.out.println(entry);

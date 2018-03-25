@@ -49,8 +49,8 @@ public class LeadingTruck extends Vehicle {
 	public void startAll() {
 		super.startAll();
 		
-		RoadTrainHandlerThread train = new RoadTrainHandlerThread();
-		train.start();
+//		RoadTrainHandlerThread train = new RoadTrainHandlerThread();
+//		train.start();
 	}
 	
 	

@@ -2,6 +2,8 @@ package edu.auburn.comp6360.application;
 
 import java.util.Scanner;
 
+import edu.auburn.comp6360.network.ClientThread;
+
 
 public class FollowingVehicle extends Vehicle {
 	
@@ -17,7 +19,7 @@ public class FollowingVehicle extends Vehicle {
 	private int post;
 	private boolean isInRoadTrain;
 	private boolean waitingAck;
-	private KeyboardListenerThread klt;
+//	private KeyboardListenerThread kt;
 	
 	public FollowingVehicle(int nodeId) {
 		super(nodeId);
@@ -57,8 +59,9 @@ public class FollowingVehicle extends Vehicle {
 	public void startAll() {
 		super.startAll();
 		
-		KeyboardListenerThread klt = new KeyboardListenerThread();
-		klt.start();
+		executor.execute(new KeyboardListenerThread());			
+//		kt = new KeyboardListenerThread();
+//		kt.start();		
 	}
 	
 	@Override
@@ -99,13 +102,14 @@ public class FollowingVehicle extends Vehicle {
 			while (true) {
 				sc = new Scanner(System.in);
 				String request = sc.next();
+				System.out.println("@@" + request);
 				if ((!isInRoadTrain) && (request.equalsIgnoreCase("join"))) {
 					System.out.println("Node " + nodeID +  " is sending JOIN request...");
 					waitingAck = true;
 					while (waitingAck) {
 						initPacket("join", 1);	// send JOIN request to the leading truck
 						try {
-							Thread.sleep(250);
+							Thread.sleep(750);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
