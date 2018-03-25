@@ -29,6 +29,7 @@ public class ClientThread implements Runnable {
 			byte[] data = PacketHandler.packetAssembler(packetToSent);
 			DatagramPacket packet = new DatagramPacket(data, data.length, serverAddr, serverPort);
 			socket.send(packet);
+//			System.out.println("sending packet...");
 			socket.close();
 		} catch (Exception e) {
 			e.printStackTrace();

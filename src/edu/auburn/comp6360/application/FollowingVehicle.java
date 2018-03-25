@@ -8,7 +8,7 @@ public class FollowingVehicle extends Vehicle {
 	public static final double CAR_LENGTH = 5;	
 	public double RANDOM_X = Math.random() * 300;
 	public double INIT_Y = 5; // in the Left Lane
-	public double RANDOM_V = 25 + Math.random() * 10;
+	public double RANDOM_V = 20 + Math.random() * 10;
 	
 	private int prev;
 	private int post;

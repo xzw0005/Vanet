@@ -9,6 +9,7 @@ public class Simulation {
 		
 		String filename = "config.txt";
 		String type = args[0];
+		System.out.println("Running a " + type + "ing vehicle.");
 		ConfigFileHandler config = new ConfigFileHandler(filename);
 		
 		if (type.equals("lead")) {
@@ -19,7 +20,6 @@ public class Simulation {
 			
 			
 		} else if (type.equals("follow")) {
-			System.out.println("Running a " + type + "ing vehicle.");
 			int nodeID = config.newNodeID(filename);
 			if (args.length == 1) {
 				FollowingVehicle fv = new FollowingVehicle(nodeID);	

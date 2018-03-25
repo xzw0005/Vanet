@@ -43,4 +43,12 @@ public class Packet implements Serializable {
 		return 4096;
 	}
 	
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		sb.append("source: " + this.getHeader().getSourceID() + ", ");
+		sb.append("sn: " + this.getHeader().getSeqNum() + ", ");
+		sb.append(this.getVehicleInfo().toString());
+		return sb.toString(); 
+	}
+	
 }

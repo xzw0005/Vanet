@@ -4,6 +4,8 @@ import java.util.SortedMap;
 
 import edu.auburn.comp6360.application.GPS;
 import edu.auburn.comp6360.application.Node;
+import edu.auburn.comp6360.network.PacketHeader;
+import edu.auburn.comp6360.network.VehicleInfo;
 
 public class VehicleHandler {
 	
@@ -58,29 +60,43 @@ public class VehicleHandler {
 	}	
 	
 	
-	public static void updateNeighborsFromPacket(Node selfNode, int otherNodeID, GPS otherGPS) {
+	public static Node updateNeighborsFromPacket(Node selfNode, int otherNodeID, GPS otherGPS) {
+//		if (!(selfNode.getNodeID() == otherNodeID)) {
 		GPS selfGPS = selfNode.getGPS();
 		if (inTransmissionRange(selfGPS, otherGPS)) 
 			selfNode.addLink(otherNodeID);
 		else
-			selfNode.removeLink(otherNodeID);
-//		return selfNode;
+			selfNode.removeLink(otherNodeID);			
+//		}
+		return selfNode;
 	}
+	
+//	public static void updateInfoFromPacket(Node selfNode, SortedMap<Integer, Node> nodesMap, PacketHeader header, VehicleInfo vInfo) {
+//		
+//	}
 	
 	
 	/*
 	 * Only add neighbor according to the config file, if the link has not been there already.
 	 * Won't remove neighbor according to the config file.
 	 */
-	public static void updateNeighborsFromFile(Node selfNode, SortedMap<Integer, Node> nodesMap) {
-		for (Integer i : nodesMap.keySet()) {
-			if ((i != selfNode.getNodeID()) && (selfNode.getLinks().contains(i)) ) {
-				Node candidate = nodesMap.get(i);
-				if (inTransmissionRange(selfNode, candidate))
-					selfNode.addLink(candidate.getNodeID());
+	public static Node updateNeighborsFromFile(Node selfNode, SortedMap<Integer, Node> nodesMap) {
+		for (SortedMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {	
+			int i = entry.getKey();
+			if ((i != selfNode.getNodeID()) && (!selfNode.getLinks().contains(i))) {
+				if (inTransmissionRange(entry.getValue(), selfNode))
+					selfNode.addLink(i);
 			}
 		}
-//		return selfNode;
+		
+//		for (Integer i : nodesMap.keySet()) {
+//			if ((i != selfNode.getNodeID()) && (!selfNode.getLinks().contains(i)) ) {
+//				Node candidate = nodesMap.get(i);
+//				if (inTransmissionRange(selfNode, candidate))
+//					selfNode.addLink(candidate.getNodeID());
+//			}
+//		}
+		return selfNode;
 	}
 	
 }

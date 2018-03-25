@@ -22,7 +22,7 @@ import edu.auburn.comp6360.utilities.VehicleHandler;
 public abstract class Vehicle {
 	
 	public static final String filename = "config.txt";
-	public static final int SERVER_PORT = 10121;
+	public static final int SERVER_PORT = 10120;
 	
 	protected double length;
 	protected double width;
@@ -73,13 +73,13 @@ public abstract class Vehicle {
 			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
 			if (hostName.indexOf(".") > -1)
 				hostName = hostName.substring(0, hostName.indexOf("."));
-			System.out.println(hostName);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		selfNode = new Node(nodeID, hostName, SERVER_PORT, gps.getX(), gps.getY());
+		selfNode = new Node(nodeID, hostName, SERVER_PORT+nodeID, gps.getX(), gps.getY());
 		nodesMap = new TreeMap<Integer, Node>();
 		nodesMap.put(nodeID, selfNode);
+		cache = new RbaCache();
 	}
 	
 	public void setLength(double length) {
@@ -146,48 +146,89 @@ public abstract class Vehicle {
 	}
 	
 	
-	synchronized public void initPacket() {
+	public void initPacket() {
 		int source = this.nodeID;
 		int prevHop = this.nodeID;
 		int sn = ++this.packetSeqNum;
 		PacketHeader header = new PacketHeader(source, prevHop, sn, 1);
 		VehicleInfo vInfo = new VehicleInfo(gps, velocity, acceleration);
-		Packet newPacket = new Packet(header, vInfo);
-		sendPacket(newPacket);
-	}
-	
-	
-	synchronized public void receivePacket(Packet packetReceived) {
-		PacketHeader header = packetReceived.getHeader();
-		int source = header.getSource();
-		int sn = header.getSeqNum();
-		if (cache.updatePacketSeqNum(source, sn)) {
-			VehicleInfo vInfo = packetReceived.getVehicleInfo();
-			VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());
-			sendPacket(packetReceived);
+		Packet packetToSend = new Packet(header, vInfo);
+//		sendPacket(packetToSend);
+		
+		cache.updatePacketSeqNum(source, sn, getNodeID());
+		SortedSet<Integer> neighbors = selfNode.getLinks();
+		if (neighbors.isEmpty()) 
+			return;
+		for (int nbID : neighbors) {
+			if (nodesMap.get(nbID) != null) {
+				Node nb = nodesMap.get(nbID);
+				String nbHostname = nb.getHostname();
+				int nbPort = nb.getPortNumber();
+				ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
+				ct.run();
+//				executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));				
+			}
 		}		
+		
+		
 	}
+	
 	
 	/*
-	 * Upon received packet, forward to its neighbors (except previous hop)
+	 * Upon received packet:
+	 * 		Update the neighbor list (between this node and the source node)
+	 * 		Update the sequence number and broadcast number in cache
+	 * 		
+	 * 		Forward to its neighbors (except previous hop)
 	 */
+	public void receivePacket(Packet packetReceived) {
+		PacketHeader header = packetReceived.getHeader();
+		int source = header.getSourceID();
+		int sn = header.getSeqNum();
+		int prevHop = header.getPrevHop();
+		
+		SortedSet<Integer> neighbors = selfNode.getLinks();
+		if (neighbors.isEmpty())
+			return;
+		if (cache.updatePacketSeqNum(source, sn, getNodeID())) {
+			VehicleInfo vInfo = packetReceived.getVehicleInfo();
+//			VehicleHandler.updateInfoFromPacket(selfNode, nodesMap, header, vInfo);
+			selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
+			for (int nbID : neighbors) {
+				if (nodesMap.get(nbID) != null) {
+					Node nb = nodesMap.get(nbID);
+					if (nbID != prevHop) {
+						String nbHostname = nb.getHostname();
+						int nbPort = nb.getPortNumber();
+						packetReceived.getHeader().setPrevHop(this.nodeID);
+//						executor.execute(new ClientThread(nbHostname, nbPort, packetReceived));
+						ClientThread ct = new ClientThread(nbHostname, nbPort, packetReceived);
+						ct.run();
+					}
+				}
+			}
+		}
+	}
+	
 	synchronized public void sendPacket(Packet packetToSend) {
 		PacketHeader header = packetToSend.getHeader();
-		int source = header.getSource();
+		int source = header.getSourceID();
 		int sn = header.getSeqNum();
 		int prevHop = header.getPrevHop();
 		
 		SortedSet<Integer> neighbors = selfNode.getLinks();
 		if (neighbors.isEmpty()) 
 			return;
-		if (cache.updatePacketSeqNum(source, sn)) {
+		if (cache.updatePacketSeqNum(source, sn, selfNode.getNodeID())) {
 			for (int nbID : neighbors) {
 				Node nb = nodesMap.get(nbID);
 				if (nb.getNodeID() != prevHop) {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
 					packetToSend.getHeader().setPrevHop(this.nodeID);
-					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));
+					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
+					ct.run();
+//					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));
 				}
 			}
 		}
@@ -206,7 +247,7 @@ public abstract class Vehicle {
 	public void startAll() {
 		bt = new SendRegularPacketThread();
 		ct = new ConfigThread();
-		st = new ServerThread(SERVER_PORT);
+		st = new ServerThread(SERVER_PORT+nodeID);
 		bt.start();
 		ct.start();
 		st.run();
@@ -239,7 +280,13 @@ public abstract class Vehicle {
 				try {
 					selfNode.setGPS(gps);
 					nodesMap = config.writeConfigFile(selfNode);
-					Thread.sleep(100);
+					
+//					System.out.println("@@@@@@ Config Thread's Nodes Map: ");
+//					for (SortedMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {
+//						System.out.println(entry);
+//					}
+					
+					Thread.sleep(500);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

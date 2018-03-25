@@ -3,15 +3,11 @@ package edu.auburn.comp6360.application;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-//import edu.auburn.comp6360.network.Packet;
-
-
 public class RbaCache {
 	
-	private int nodeID;
 	private Map<Integer, CacheContent> packetHistory = new ConcurrentHashMap<Integer, CacheContent>();
 	
-	public RbaCache(int nodeID) {
+	public RbaCache() {
 		packetHistory = new ConcurrentHashMap<Integer, CacheContent>();
 	}
 	
@@ -21,15 +17,19 @@ public class RbaCache {
 		return packetHistory.get(source).sequenceNumber;
 	}
 	
-	public boolean updatePacketSeqNum(int source, int sn) {
+	public boolean updatePacketSeqNum(int source, int sn, int nid) {
 		if (this.getPacketSeqNum(source) < sn) {
 			packetHistory.put(source, new CacheContent(sn, 0));
 			return true;
-		} else if ((this.getPacketSeqNum(source) == sn) && (source != this.nodeID)) {
-			int bn = this.getBroadcastNumber(source);
-			if ((bn == 0) && (Math.random() <= 1./Math.pow(bn, 2))) {
-				packetHistory.get(source).broadcastNumber++;
-				return true;
+		} else if ((this.getPacketSeqNum(source) == sn)) {
+			if (source == nid)
+				packetHistory.get(source).broadcastNumber = 1;
+			else {				
+				int bn = this.getBroadcastNumber(source);
+				if ((bn == 0) && (Math.random() <= 1./Math.pow(bn, 2))) {
+					incrementBroadcastNumber(source);
+					return true;
+				}
 			}
 		}
 		return false;

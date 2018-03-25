@@ -18,6 +18,8 @@ public class Node {
 		this.x = xCoord; 
 		this.y = yCoord; 
 		this.links = new TreeSet<Integer>();
+		
+		
 	}
 	
 	public int getNodeID() {
@@ -63,7 +65,7 @@ public class Node {
 	
 	
 	@Override
-	public String toString() {
+	synchronized public String toString() {
 		StringBuffer sb = new StringBuffer("Node ");
 		sb.append(getNodeID() + " " + getHostname() + ", " + getPortNumber() + " ");		
 		sb.append(String.format("%.1f %.1f links", getX(), getY()));
