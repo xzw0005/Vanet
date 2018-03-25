@@ -6,15 +6,16 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
+//import java.util.concurrent.ExecutorService;
 
 import edu.auburn.comp6360.network.ClientThread;
 import edu.auburn.comp6360.network.Packet;
-import edu.auburn.comp6360.network.PacketHeader;
 import edu.auburn.comp6360.network.VehicleInfo;
+import edu.auburn.comp6360.network.Header;
 import edu.auburn.comp6360.utilities.ConfigFileHandler;
 import edu.auburn.comp6360.utilities.PacketHandler;
 import edu.auburn.comp6360.utilities.VehicleHandler;
@@ -33,7 +34,8 @@ public abstract class Vehicle {
 	protected long timeStamp;	
 	
 	protected String hostName;
-	protected int packetSeqNum;
+//	protected int packetSeqNum;
+	protected Map<String, Integer> snMap;
 	
 	protected int nodeID;	
 	protected Node selfNode; 
@@ -43,18 +45,18 @@ public abstract class Vehicle {
 
 	protected boolean inRoadTrain;
 	
-	private ExecutorService executor;
+//	private ExecutorService executor;
 
-	private SendRegularPacketThread bt;
-	private ConfigThread ct;
-	private ServerThread st;
+	private SendNormalPacketThread npt;
+	private ConfigThread cft;
+	private ServerThread svt;
 	
 	
 	public Vehicle() {
 		
 		gps = new GPS();
 		timeStamp = System.currentTimeMillis();
-		packetSeqNum = 0;
+		snMap = VehicleHandler.initializeSequenceNumbers();
 		try {
 			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
 			if (hostName.indexOf(".") > -1)
@@ -68,7 +70,7 @@ public abstract class Vehicle {
 		nodeID = nodeId;
 		gps = new GPS();
 		timeStamp = System.currentTimeMillis();
-		packetSeqNum = 0;
+		snMap = VehicleHandler.initializeSequenceNumbers();
 		try {
 			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
 			if (hostName.indexOf(".") > -1)
@@ -141,96 +143,75 @@ public abstract class Vehicle {
 	}
 	
 	
-	public void inreaseSeqNum() {
-		++this.packetSeqNum;
+	public int inreaseSeqNum(String packetType) {
+		int sn = this.snMap.get(packetType);
+		++sn;
+		this.snMap.put(packetType, sn);
+		return sn;
 	}
 	
 	
-	public void initPacket() {
+	public void initPacket(String type, int dest) {
+		int sn = this.inreaseSeqNum(type);
 		int source = this.nodeID;
 		int prevHop = this.nodeID;
-		int sn = ++this.packetSeqNum;
-		PacketHeader header = new PacketHeader(source, prevHop, sn, 1);
-		VehicleInfo vInfo = new VehicleInfo(gps, velocity, acceleration);
-		Packet packetToSend = new Packet(header, vInfo);
-//		sendPacket(packetToSend);
-		
-		cache.updatePacketSeqNum(source, sn, getNodeID());
+		Header header = new Header(type, source, sn, prevHop);
+		if (!type.equals("normal"))
+			header.setDest(dest);
+		Packet packetToSend = new Packet(header);
+		if (type.equals("normal")) {
+			VehicleInfo vInfo = new VehicleInfo(gps, velocity, acceleration);
+			packetToSend.setVehicleInfo(vInfo);
+		}
+		this.cache.updatePacketSeqNum(source, type, sn, getNodeID());
+		sendPacket(packetToSend, source, sn, prevHop);
+	}
+	
+	public void initPacket() {
+		initPacket("normal", -1);
+	}
+	
+	public void sendPacket(Packet packetToSend, int source, int sn, int prevHop) {
 		SortedSet<Integer> neighbors = selfNode.getLinks();
 		if (neighbors.isEmpty()) 
 			return;
 		for (int nbID : neighbors) {
 			if (nodesMap.get(nbID) != null) {
 				Node nb = nodesMap.get(nbID);
-				String nbHostname = nb.getHostname();
-				int nbPort = nb.getPortNumber();
-				ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
-				ct.run();
-//				executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));				
-			}
-		}		
-		
-		
-	}
-	
-	
-	/*
-	 * Upon received packet:
-	 * 		Update the neighbor list (between this node and the source node)
-	 * 		Update the sequence number and broadcast number in cache
-	 * 		
-	 * 		Forward to its neighbors (except previous hop)
-	 */
-	public void receivePacket(Packet packetReceived) {
-		PacketHeader header = packetReceived.getHeader();
-		int source = header.getSourceID();
-		int sn = header.getSeqNum();
-		int prevHop = header.getPrevHop();
-		
-		SortedSet<Integer> neighbors = selfNode.getLinks();
-		if (neighbors.isEmpty())
-			return;
-		if (cache.updatePacketSeqNum(source, sn, getNodeID())) {
-			VehicleInfo vInfo = packetReceived.getVehicleInfo();
-//			VehicleHandler.updateInfoFromPacket(selfNode, nodesMap, header, vInfo);
-			selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
-			for (int nbID : neighbors) {
-				if (nodesMap.get(nbID) != null) {
-					Node nb = nodesMap.get(nbID);
-					if (nbID != prevHop) {
-						String nbHostname = nb.getHostname();
-						int nbPort = nb.getPortNumber();
-						packetReceived.getHeader().setPrevHop(this.nodeID);
-//						executor.execute(new ClientThread(nbHostname, nbPort, packetReceived));
-						ClientThread ct = new ClientThread(nbHostname, nbPort, packetReceived);
-						ct.run();
-					}
-				}
-			}
-		}
-	}
-	
-	synchronized public void sendPacket(Packet packetToSend) {
-		PacketHeader header = packetToSend.getHeader();
-		int source = header.getSourceID();
-		int sn = header.getSeqNum();
-		int prevHop = header.getPrevHop();
-		
-		SortedSet<Integer> neighbors = selfNode.getLinks();
-		if (neighbors.isEmpty()) 
-			return;
-		if (cache.updatePacketSeqNum(source, sn, selfNode.getNodeID())) {
-			for (int nbID : neighbors) {
-				Node nb = nodesMap.get(nbID);
-				if (nb.getNodeID() != prevHop) {
+				if (nbID != prevHop) {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
 					packetToSend.getHeader().setPrevHop(this.nodeID);
 					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
 					ct.run();
-//					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));
+	//				executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
 				}
 			}
+		}				
+	}
+	
+	/*
+	 * Upon received packet:
+	 * 		Update the sequence number and broadcast number in cache
+	 * 		Update the neighbor list (between this node and the source node)
+	 * 		
+	 * 		Forward to its neighbors (except previous hop)
+	 */
+	public void receivePacket(Packet packetReceived) {
+		Header header = packetReceived.getHeader();
+		int source = header.getSource();
+		int sn = header.getSeqNum();
+		int prevHop = header.getPrevHop();
+		String packetType = header.getPacketType();
+		if (packetType.equals("normal"))  {
+			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
+				VehicleInfo vInfo = packetReceived.getVehicleInfo();
+				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
+				sendPacket(packetReceived, source, sn, prevHop);
+			}
+		} else {		// in the case that of not normal packets
+			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
+				sendPacket(packetReceived, source, sn, prevHop);
 		}
 	}
 	
@@ -245,16 +226,17 @@ public abstract class Vehicle {
 	}
 	
 	public void startAll() {
-		bt = new SendRegularPacketThread();
-		ct = new ConfigThread();
-		st = new ServerThread(SERVER_PORT+nodeID);
-		bt.start();
-		ct.start();
-		st.run();
+		cft = new ConfigThread();
+		svt = new ServerThread(SERVER_PORT+nodeID);
+		npt = new SendNormalPacketThread();
+
+		cft.start();
+		svt.run();
+		npt.start();
 //		System.out.println("????");
 	}
 
-	public class SendRegularPacketThread extends Thread {
+	public class SendNormalPacketThread extends Thread {
 		
 		@Override
 		public void run() {
@@ -318,6 +300,7 @@ public abstract class Vehicle {
 						packetData = datagramPacketReceived.getData();
 						Packet packetReceived = PacketHandler.packetDessembler(packetData);
 						receivePacket(packetReceived);
+//						System.out.println("@@" + packetReceived.toString());
 					} catch (IOException e) {
 						e.printStackTrace();
 						stopListening();

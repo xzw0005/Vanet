@@ -11,15 +11,13 @@ public class Node {
 	private double x, y;
 	private SortedSet<Integer> links;
 	
-	public Node(int nodeID, String host, int portNumber, double xCoord, double yCoord) {
+	public Node(int nodeID, String hostName, int portNumber, double xCoord, double yCoord) {
 		this.nodeID = nodeID;
-		this.hostname = host;
+		this.hostname = hostName;
 		this.port = portNumber;
 		this.x = xCoord; 
 		this.y = yCoord; 
 		this.links = new TreeSet<Integer>();
-		
-		
 	}
 	
 	public int getNodeID() {
@@ -62,7 +60,6 @@ public class Node {
 	public boolean removeLink(int link) {
 		return links.remove(Integer.valueOf(link));
 	}
-	
 	
 	@Override
 	synchronized public String toString() {

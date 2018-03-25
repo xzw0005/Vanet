@@ -1,8 +1,11 @@
 package edu.auburn.comp6360.application;
 
+import java.util.Scanner;
+
+
 public class FollowingVehicle extends Vehicle {
 	
-	public enum VType {LEAD, FOLLOW};
+//	public enum VType {LEAD, FOLLOW};
 //	public enum Lane {LEFT, RIGHT};
 	public static final double CAR_WIDTH = 3;
 	public static final double CAR_LENGTH = 5;	
@@ -13,6 +16,8 @@ public class FollowingVehicle extends Vehicle {
 	private int prev;
 	private int post;
 	private boolean isInRoadTrain;
+	private boolean waitingAck;
+	private KeyboardListenerThread klt;
 	
 	public FollowingVehicle(int nodeId) {
 		super(nodeId);
@@ -21,6 +26,8 @@ public class FollowingVehicle extends Vehicle {
 		this.setLength(CAR_LENGTH);
 		this.setVelocity(RANDOM_V);
 		this.setAcceleration();
+		this.isInRoadTrain = false;
+		this.waitingAck = false;
 	}
 	
 	public FollowingVehicle(int nodeId, double init_x) {
@@ -30,6 +37,8 @@ public class FollowingVehicle extends Vehicle {
 		this.setLength(CAR_LENGTH);
 		this.setVelocity(RANDOM_V);
 		this.setAcceleration();
+		this.isInRoadTrain = false;
+		this.waitingAck = false;
 	}
 	
 	public FollowingVehicle(int nodeId, double init_x, double init_v) {
@@ -39,7 +48,18 @@ public class FollowingVehicle extends Vehicle {
 		this.setLength(CAR_LENGTH);
 		this.setVelocity(init_v);
 		this.setAcceleration();
+		this.isInRoadTrain = false;
+		this.waitingAck = false;
 	}		
+
+	
+	@Override
+	public void startAll() {
+		super.startAll();
+		
+		KeyboardListenerThread klt = new KeyboardListenerThread();
+		klt.start();
+	}
 	
 	@Override
 	public void setAcceleration() {
@@ -68,6 +88,42 @@ public class FollowingVehicle extends Vehicle {
 		
 		gps.setY(5);	// switch to the left lane
 		isInRoadTrain = false;
+	}
+	
+	
+	public class KeyboardListenerThread extends Thread {
+		private Scanner sc;
+
+		@Override
+		public void run() {
+			while (true) {
+				sc = new Scanner(System.in);
+				String request = sc.next();
+				if ((!isInRoadTrain) && (request.equalsIgnoreCase("join"))) {
+					System.out.println("Node " + nodeID +  " is sending JOIN request...");
+					waitingAck = true;
+					while (waitingAck) {
+						initPacket("join", 1);	// send JOIN request to the leading truck
+						try {
+							Thread.sleep(250);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				} else if ((isInRoadTrain) && (request.equalsIgnoreCase("leave"))) {
+					System.out.println("Node " + nodeID +  " is sending LEAVE request...");
+					waitingAck = true;
+					while (waitingAck) {
+						initPacket("leave", 1);	// send LEAVE request to the leading truck
+						try {
+							Thread.sleep(250);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}			
+		}
 	}
 	
 	

@@ -3,6 +3,11 @@ package edu.auburn.comp6360.application;
 import java.util.LinkedList;
 import java.util.List;
 
+import edu.auburn.comp6360.network.Header;
+import edu.auburn.comp6360.network.Packet;
+import edu.auburn.comp6360.network.VehicleInfo;
+import edu.auburn.comp6360.utilities.VehicleHandler;
+
 //import edu.auburn.comp6360.application.Vehicle.ConfigThread;
 //import edu.auburn.comp6360.application.Vehicle.SendRegularPacketThread;
 //import edu.auburn.comp6360.network.ServerThread;
@@ -47,6 +52,27 @@ public class LeadingTruck extends Vehicle {
 		RoadTrainHandlerThread train = new RoadTrainHandlerThread();
 		train.start();
 	}
+	
+	
+	public void receivePacket(Packet packetReceived) {
+		Header header = packetReceived.getHeader();
+		int source = header.getSource();
+		int sn = header.getSeqNum();
+		int prevHop = header.getPrevHop();
+		String packetType = header.getPacketType();
+		if (packetType.equals("normal"))  {
+			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
+				VehicleInfo vInfo = packetReceived.getVehicleInfo();
+				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
+				sendPacket(packetReceived, source, sn, prevHop);
+			}
+		} else {		// in the case that of not normal packets
+			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
+				sendPacket(packetReceived, source, sn, prevHop);
+		}
+	}
+	
+	
 	
 	
 	public class RoadTrainHandlerThread extends Thread {

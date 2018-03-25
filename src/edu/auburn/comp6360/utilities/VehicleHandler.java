@@ -1,13 +1,24 @@
 package edu.auburn.comp6360.utilities;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.SortedMap;
 
 import edu.auburn.comp6360.application.GPS;
 import edu.auburn.comp6360.application.Node;
-import edu.auburn.comp6360.network.PacketHeader;
-import edu.auburn.comp6360.network.VehicleInfo;
+//import edu.auburn.comp6360.network.PacketHeader;
 
 public class VehicleHandler {
+
+	public static final String[] PACKET_TYPES = {"normal", "join", "leave", "ackJoin", "ackLeave"};
+
+	public static Map<String, Integer> initializeSequenceNumbers() {
+		Map<String, Integer> snMap= new HashMap<String, Integer>();
+		for (String type : PACKET_TYPES) {
+			snMap.put(type, 0);
+		}
+		return snMap;
+	}
 	
 	public static GPS computeGPS(GPS gps, double velocity, double acceleration, double dt) {
 		double x = gps.getX();
@@ -78,24 +89,17 @@ public class VehicleHandler {
 	
 	/*
 	 * Only add neighbor according to the config file, if the link has not been there already.
-	 * Won't remove neighbor according to the config file.
 	 */
 	public static Node updateNeighborsFromFile(Node selfNode, SortedMap<Integer, Node> nodesMap) {
 		for (SortedMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {	
 			int i = entry.getKey();
-			if ((i != selfNode.getNodeID()) && (!selfNode.getLinks().contains(i))) {
+			if (i != selfNode.getNodeID()) { //&& (!selfNode.getLinks().contains(i))) {
 				if (inTransmissionRange(entry.getValue(), selfNode))
 					selfNode.addLink(i);
+				else
+					selfNode.removeLink(i);
 			}
 		}
-		
-//		for (Integer i : nodesMap.keySet()) {
-//			if ((i != selfNode.getNodeID()) && (!selfNode.getLinks().contains(i)) ) {
-//				Node candidate = nodesMap.get(i);
-//				if (inTransmissionRange(selfNode, candidate))
-//					selfNode.addLink(candidate.getNodeID());
-//			}
-//		}
 		return selfNode;
 	}
 	
