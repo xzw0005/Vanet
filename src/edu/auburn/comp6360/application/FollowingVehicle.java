@@ -2,10 +2,10 @@ package edu.auburn.comp6360.application;
 
 import java.util.Scanner;
 
-import edu.auburn.comp6360.application.Vehicle.BroadcastThread;
-import edu.auburn.comp6360.application.Vehicle.ConfigThread;
-import edu.auburn.comp6360.application.Vehicle.ServerThread;
-import edu.auburn.comp6360.network.ClientThread;
+import edu.auburn.comp6360.network.Header;
+import edu.auburn.comp6360.network.Packet;
+import edu.auburn.comp6360.network.VehicleInfo;
+import edu.auburn.comp6360.utilities.VehicleHandler;
 
 
 public class FollowingVehicle extends Vehicle {
@@ -14,47 +14,49 @@ public class FollowingVehicle extends Vehicle {
 //	public enum Lane {LEFT, RIGHT};
 	public static final double CAR_WIDTH = 3;
 	public static final double CAR_LENGTH = 5;	
-	public double RANDOM_X = Math.random() * 300;
 	public double INIT_Y = 5; // in the Left Lane
+	public double RANDOM_X = Math.random() * 300;
 	public double RANDOM_V = 20 + Math.random() * 10;
 	
-	private int prev;
-	private int post;
-	private boolean isInRoadTrain;
-	private boolean waitingAck;
+	private boolean waitingAckJoin;
+	private boolean waitingAckLeave;
 	private KeyboardListenerThread kt;
 	
 	public FollowingVehicle(int nodeId) {
 		super(nodeId);
-		this.setGPS(new GPS(RANDOM_X, INIT_Y));
+		double randomX = Math.random() * 300;
+		this.setGPS(new GPS(randomX, INIT_Y));
 		this.setWidth(CAR_WIDTH);
 		this.setLength(CAR_LENGTH);
 		this.setVelocity(RANDOM_V);
 		this.setAcceleration();
-		this.isInRoadTrain = false;
-		this.waitingAck = false;
+		
+		this.waitingAckJoin = false;
+		this.waitingAckLeave = false;
 	}
 	
 	public FollowingVehicle(int nodeId, double init_x) {
+//		FollowingVehicle(nodeID, init_x, RANDOM_V);		
 		super(nodeId);
 		this.setGPS(new GPS(init_x, INIT_Y));
 		this.setWidth(CAR_WIDTH);
 		this.setLength(CAR_LENGTH);
 		this.setVelocity(RANDOM_V);
 		this.setAcceleration();
-		this.isInRoadTrain = false;
-		this.waitingAck = false;
+		
+		this.waitingAckJoin = false;
+		this.waitingAckLeave = false;		
 	}
-	
+
 	public FollowingVehicle(int nodeId, double init_x, double init_v) {
 		super(nodeId);
 		this.setGPS(new GPS(init_x, INIT_Y));
 		this.setWidth(CAR_WIDTH);
 		this.setLength(CAR_LENGTH);
 		this.setVelocity(init_v);
-		this.setAcceleration();
-		this.isInRoadTrain = false;
-		this.waitingAck = false;
+		this.setAcceleration();		
+		this.waitingAckJoin = false;
+		this.waitingAckLeave = false;	
 	}		
 
 	
@@ -82,29 +84,71 @@ public class FollowingVehicle extends Vehicle {
 	}	
 	
 	
-//	public void setLane(Lane lane) {
-//		if (lane == Lane.LEFT)
-//			gps.setY(5);
-//		else if (lane == Lane.RIGHT) 
-//			gps.setY(0);
-//		else
-//			System.err.println("Invalid lane setting.");
-//	}
+	public void receivePacket(Packet packetReceived) {
+		Header header = packetReceived.getHeader();
+		int source = header.getSource();
+		int sn = header.getSeqNum();
+		int prevHop = header.getPrevHop();
+		String packetType = header.getPacketType();
+		if (packetType.equals("normal"))  {
+			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
+				VehicleInfo vInfo = packetReceived.getVehicleInfo();
+				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
+				sendPacket(packetReceived, source, sn, prevHop);
+			}
+		} else {		// in the case that of not normal packets
+			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
+				sendPacket(packetReceived, source, sn, prevHop);
+		}
+	}
+	
+	
+	
+	
 	
 	public void joinRoadTrain() {
 		// TODO
 		
-		gps.setY(0); 	// merge to the right lane
-		isInRoadTrain = true;
+		gps.setY(0); 	// merge to the right lane, & join the road train
 	}
 	
 	public void leaveRoadTrain() {
 		// TODO
 		
-		gps.setY(5);	// switch to the left lane
-		isInRoadTrain = false;
+		gps.setY(5);	// switch to the left lane, & leave the road train
 	}
 	
+	
+	public void processAckJoin(int source, int ahead) {
+		if (waitingAckJoin) {
+			waitingAckJoin = false;
+			this.ahead = ahead;
+			initPacket("ackJoin", 1, ahead);
+			joinRoadTrain();
+		}
+	}
+	
+	@Override
+	public void processAckLeave(int source, int ahead) {
+		if (waitingAckLeave) {
+			waitingAckLeave = false;
+			ahead = 0;
+			aheadInfo = null;
+			initPacket("ackLeave", 1, 0);
+			leaveRoadTrain();	
+		}
+	}
+	
+	/*
+	 * The notifyLeave must be sent from the leading vehicle
+	 * to notify this vehicle to change the vehicle ahead and catch up
+	 */
+	public void processNotifyLeave(int source, int newAhead) {
+		if (VehicleHandler.isInRoadTrain(gps)) {
+			ahead = newAhead;
+			// CATCHUP PREV
+		}
+	}
 	
 	public class KeyboardListenerThread extends Thread {
 		private Scanner sc;
@@ -117,11 +161,11 @@ public class FollowingVehicle extends Vehicle {
 				String request = sc.next();
 				System.out.println("@@" + request);
 
-				if ((!isInRoadTrain) && (request.equalsIgnoreCase("join"))) {
+				if ((!VehicleHandler.isInRoadTrain(gps)) && (request.equalsIgnoreCase("join"))) {
 					System.out.println("Node " + nodeID +  " is sending JOIN request...");
-					waitingAck = true;
-					while (waitingAck) {
-						initPacket("join", 1);	// send JOIN request to the leading truck
+					waitingAckJoin = true;
+					while (waitingAckJoin) {
+						initPacket("join", 1, 0);	// send JOIN request to the leading truck
 						try {
 							Thread.sleep(750);
 						} catch (InterruptedException e) {
@@ -129,22 +173,17 @@ public class FollowingVehicle extends Vehicle {
 						}
 						
 					}
-				} else if ((isInRoadTrain) && (request.equalsIgnoreCase("leave"))) {
+				} else if ((VehicleHandler.isInRoadTrain(gps)) && (request.equalsIgnoreCase("leave"))) {
 					System.out.println("Node " + nodeID +  " is sending LEAVE request...");
-					waitingAck = true;
-					while (waitingAck) {
-						initPacket("leave", 1);	// send LEAVE request to the leading truck
+					waitingAckLeave = true;
+					while (waitingAckLeave) {
+						initPacket("leave", 1, ahead);	// send LEAVE request to the leading truck
 						try {
 							Thread.sleep(750);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
 					}
-				}
-				try {
-					Thread.sleep(5000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
 				}
 			}			
 		}

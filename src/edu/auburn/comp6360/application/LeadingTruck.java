@@ -1,19 +1,11 @@
 package edu.auburn.comp6360.application;
 
 import java.util.LinkedList;
-import java.util.List;
 
-import edu.auburn.comp6360.application.Vehicle.BroadcastThread;
-import edu.auburn.comp6360.application.Vehicle.ConfigThread;
-import edu.auburn.comp6360.application.Vehicle.ServerThread;
 import edu.auburn.comp6360.network.Header;
 import edu.auburn.comp6360.network.Packet;
 import edu.auburn.comp6360.network.VehicleInfo;
 import edu.auburn.comp6360.utilities.VehicleHandler;
-
-//import edu.auburn.comp6360.application.Vehicle.ConfigThread;
-//import edu.auburn.comp6360.application.Vehicle.SendRegularPacketThread;
-//import edu.auburn.comp6360.network.ServerThread;
 
 public class LeadingTruck extends Vehicle {	
 
@@ -23,7 +15,7 @@ public class LeadingTruck extends Vehicle {
 	public static double INIT_Y = 0; // in the Right Lane
 	public static double INIT_V = 30;
 	
-	private List<Integer> roadTrainList;
+	private LinkedList<Integer> roadTrainList;
 	
 	public LeadingTruck(int nodeID) {
 		super(nodeID);
@@ -66,9 +58,12 @@ public class LeadingTruck extends Vehicle {
 	
 	public void receivePacket(Packet packetReceived) {
 		Header header = packetReceived.getHeader();
+		int prevHop = header.getPrevHop();
+
+		
+		
 		int source = header.getSource();
 		int sn = header.getSeqNum();
-		int prevHop = header.getPrevHop();
 		String packetType = header.getPacketType();
 		if (packetType.equals("normal"))  {
 			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
@@ -83,19 +78,34 @@ public class LeadingTruck extends Vehicle {
 	}
 	
 	
-	
-	
-	public class RoadTrainHandlerThread extends Thread {
-		
-		@Override
-		public void run() {
-			
+	@Override
+	public void processJoinRequest(int source) {
+		if (!roadTrainList.contains(source)) {
+			int lastInTrain = roadTrainList.getLast();		// Tell the source (the one who wanna join) to follow the last in road train
+			initPacket("ackJoin", source, lastInTrain);	// TODO LATER: implement as the nearest ahead node for source
 		}
-
 	}
 	
+	@Override
+	public void processAckJoin(int source, int info) {
+		roadTrainList.addLast(source);
+	}
 	
+	@Override
+	public void processLeaveRequest(int source) {
+		if (roadTrainList.contains(source)) {
+			initPacket("ackLeave", source, 0);
+		}
+	}
 	
+	@Override
+	public void processAckLeave(int source, int info) {
+		int i = roadTrainList.indexOf(Integer.valueOf(source));
+		int dest = roadTrainList.get(i + 1);	// The one behind i should be notified
+		int prev = roadTrainList.get(i - 1);	// Tell it to follow the one previously before i
+		roadTrainList.remove(i);				// Update roadTrainList
+		initPacket("nofifyLeave", dest, prev);		
+	}
 	
 	
 }

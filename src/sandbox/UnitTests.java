@@ -13,7 +13,8 @@ public class UnitTests {
 
 	public static void main(String[] args) throws UnknownHostException {
 
-		
+		int i = 0;
+		System.out.println(String.valueOf(i));
 		
 		
 //		SubC s = new SubC();

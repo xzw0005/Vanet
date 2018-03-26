@@ -22,7 +22,7 @@ import edu.auburn.comp6360.utilities.VehicleHandler;
 
 public abstract class Vehicle {
 	
-	public static final String filename = "config.txt";
+	public static final String FILENAME = "config.txt";
 	public static final int SERVER_PORT = 10120;
 	
 	protected double length;
@@ -42,8 +42,8 @@ public abstract class Vehicle {
 	protected SortedMap<Integer, Node> nodesMap; // from config file
 	
 	protected RbaCache cache;
-
-	protected boolean inRoadTrain;
+	protected int ahead;
+	protected VehicleInfo aheadInfo;
 	
 	protected ExecutorService executor;
 
@@ -82,6 +82,8 @@ public abstract class Vehicle {
 		nodesMap = new TreeMap<Integer, Node>();
 		nodesMap.put(nodeID, selfNode);
 		cache = new RbaCache();
+		ahead = 0;
+		aheadInfo = null;
 	}
 	
 	public void setLength(double length) {
@@ -145,19 +147,20 @@ public abstract class Vehicle {
 	
 	public int inreaseSeqNum(String packetType) {
 		int sn = this.snMap.get(packetType);
-		++sn;
-		this.snMap.put(packetType, sn);
+		this.snMap.put(packetType, ++sn);
 		return sn;
 	}
 	
 	
-	public void initPacket(String type, int dest) {
+	public void initPacket(String type, int dest, int extraInfo) {
 		int sn = this.inreaseSeqNum(type);
 		int source = this.nodeID;
 		int prevHop = this.nodeID;
 		Header header = new Header(type, source, sn, prevHop);
-		if (!type.equals("normal"))
+		if (!type.equals("normal")) {
 			header.setDest(dest);
+			header.setExtraInfo(extraInfo);
+		}
 		Packet packetToSend = new Packet(header);
 		if (type.equals("normal")) {
 			VehicleInfo vInfo = new VehicleInfo(gps, velocity, acceleration);
@@ -171,7 +174,7 @@ public abstract class Vehicle {
 	}
 	
 	public void initPacket() {
-		initPacket("normal", -1);
+		initPacket("normal", -1, -1);
 	}
 	
 	public void sendPacket(Packet packetToSend, int source, int sn, int prevHop) {
@@ -211,21 +214,97 @@ public abstract class Vehicle {
 				VehicleInfo vInfo = packetReceived.getVehicleInfo();
 				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
 				sendPacket(packetReceived, source, sn, prevHop);
+				if (ahead == source) {
+					aheadInfo = vInfo;
+				}
 			}
 		} else {		// in the case that of not normal packets
 			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
 				sendPacket(packetReceived, source, sn, prevHop);
+			else if (header.getDest() == this.nodeID) {
+				int info = header.getExtraInfo();
+				if (packetType.equals("join"))
+					processJoinRequest(source);
+				else if (packetType.equals("leave"))
+					processLeaveRequest(source);
+				else if (packetType.equals("ackJoin"))
+					processAckJoin(source, info);
+				else if (packetType.equals("ackLeave"))
+					processAckLeave(source, info);
+			}
 		}
 	}
 	
+	
+	public void processJoinRequest(int source) {
+		
+	}
+
+	public void processLeaveRequest(int source) {
+		
+	}
+
+	public void processAckLeave(int source, int info) {
+		
+	}
+
+	public void processAckJoin(int source, int info) {
+		
+	}
+	
+	public void followAhead() {
+		if (gps.getX() >= 4000 && gps.getX() <= 5000) {
+			if (aheadInfo.getVelocity() > 20) {
+				setVelocity(20);
+				setAcceleration(0);
+			}else {
+				setVelocity(aheadInfo.getVelocity());
+				setAcceleration(aheadInfo.getAcceleration());	
+			}
+		} else if (aheadInfo.getX() - gps.getX() >= 20) {
+			setVelocity(aheadInfo.getVelocity() + 5);	// increase speed to catch up
+			setAcceleration(0);
+		} else if (aheadInfo.getX() - gps.getX() <= 10) {
+			setVelocity(aheadInfo.getVelocity() - 5);	// decrease speed to slow down
+			setAcceleration(0);
+		} else {
+			setVelocity(aheadInfo.getVelocity());
+			setAcceleration(aheadInfo.getAcceleration());				
+		}
+	}
+	
+
 	public void sensorUpdate() {
 		long currentTime = System.currentTimeMillis();
 		double dt = (currentTime - this.timeStamp) / 1000.0; // in seconds
 		this.timeStamp = currentTime;
 //		System.out.println(dt);
 		setGPS(VehicleHandler.computeGPS(gps, velocity, acceleration, dt));
-		setVelocity(VehicleHandler.computeVelocity(velocity, acceleration, dt));
-		setAcceleration();
+		
+		if (gps.getX() >= 4000 && gps.getX() <= 5000) {
+			if (aheadInfo != null && aheadInfo.getVelocity() <= 20) {
+				setVelocity(aheadInfo.getVelocity());
+				setAcceleration(aheadInfo.getAcceleration());
+			} else {
+				setVelocity(20);
+				setAcceleration(0);
+			}
+		} else if (aheadInfo != null) {
+			if (aheadInfo.getX() - gps.getX() >= 20) {
+				setVelocity(aheadInfo.getVelocity() + 5);	// increase speed to catch up
+				setAcceleration(0);
+			} else if (aheadInfo.getX() - gps.getX() <= 10) {
+				setVelocity(aheadInfo.getVelocity() - 5);	// decrease speed to slow down
+				setAcceleration(0);
+			} else {
+				setVelocity(aheadInfo.getVelocity());
+				setAcceleration(aheadInfo.getAcceleration());	
+			}
+		} else {
+			setVelocity(VehicleHandler.computeVelocity(velocity, acceleration, dt));
+			setAcceleration();			
+		}
+		
 	}
 	
 //	public void startAll() {

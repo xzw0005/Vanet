@@ -103,4 +103,8 @@ public class VehicleHandler {
 		return selfNode;
 	}
 	
+	public static boolean isInRoadTrain(GPS gps) {
+		return gps.getY() == 0;
+	}	
+	
 }
