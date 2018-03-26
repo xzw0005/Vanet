@@ -13,8 +13,6 @@ public class UnitTests {
 
 	public static void main(String[] args) throws UnknownHostException {
 
-		KeyboardListener kl = new KeyboardListener();
-		kl.start();
 		
 		
 		
