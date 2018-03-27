@@ -25,6 +25,7 @@ public abstract class Vehicle {
 	public static final String FILENAME = "config.txt";
 	public static final int SERVER_PORT = 10120;
 	
+	
 	protected double length;
 	protected double width;
 
@@ -42,8 +43,9 @@ public abstract class Vehicle {
 	protected SortedMap<Integer, Node> nodesMap; // from config file
 	
 	protected RbaCache cache;
-	protected int ahead;
-	protected VehicleInfo aheadInfo;
+	protected int front;
+	protected VehicleInfo frontVinfo;
+	protected int letCarIn;
 	
 	protected ExecutorService executor;
 
@@ -82,8 +84,9 @@ public abstract class Vehicle {
 		nodesMap = new TreeMap<Integer, Node>();
 		nodesMap.put(nodeID, selfNode);
 		cache = new RbaCache();
-		ahead = 0;
-		aheadInfo = null;
+		front = 0;
+		frontVinfo = null;
+		letCarIn = 0;
 	}
 	
 	public void setLength(double length) {
@@ -152,7 +155,7 @@ public abstract class Vehicle {
 	}
 	
 	
-	public void initPacket(String type, int dest, int extraInfo) {
+	public Packet initPacket(String type, int dest, int extraInfo) {
 		int sn = this.inreaseSeqNum(type);
 		int source = this.nodeID;
 		int prevHop = this.nodeID;
@@ -168,13 +171,13 @@ public abstract class Vehicle {
 		}
 		this.cache.updatePacketSeqNum(source, type, sn, getNodeID());
 		sendPacket(packetToSend, source, sn, prevHop);
-		
-		if (!type.equals("normal"))
-			System.out.println(packetToSend.toString());
+//		if (!type.equals("normal"))
+//			System.out.println(packetToSend.toString());
+		return packetToSend;
 	}
 	
-	public void initPacket() {
-		initPacket("normal", -1, -1);
+	public Packet initPacket() {
+		return initPacket("normal", -1, -1);
 	}
 	
 	public void sendPacket(Packet packetToSend, int source, int sn, int prevHop) {
@@ -214,8 +217,8 @@ public abstract class Vehicle {
 				VehicleInfo vInfo = packetReceived.getVehicleInfo();
 				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
 				sendPacket(packetReceived, source, sn, prevHop);
-				if (ahead == source) {
-					aheadInfo = vInfo;
+				if (front == source) {
+					frontVinfo = vInfo;
 				}
 			}
 		} else {		// in the case that of not normal packets
@@ -231,6 +234,12 @@ public abstract class Vehicle {
 					processAckJoin(source, info);
 				else if (packetType.equals("ackLeave"))
 					processAckLeave(source, info);
+				else if (packetType.equals("notify"))
+					letCarIn = header.getExtraInfo();
+				else if (packetType.equals("ok"))
+					processOK(source, letCarIn);
+				else if (packetType.equals("update")) 
+					front = header.getExtraInfo();
 			}
 		}
 	}
@@ -252,24 +261,29 @@ public abstract class Vehicle {
 		
 	}
 	
+	public void processOK(int source, int info) {
+		
+	}
+	
+	
 	public void followAhead() {
 		if (gps.getX() >= 4000 && gps.getX() <= 5000) {
-			if (aheadInfo.getVelocity() > 20) {
+			if (frontVinfo.getVelocity() > 20) {
 				setVelocity(20);
 				setAcceleration(0);
 			}else {
-				setVelocity(aheadInfo.getVelocity());
-				setAcceleration(aheadInfo.getAcceleration());	
+				setVelocity(frontVinfo.getVelocity());
+				setAcceleration(frontVinfo.getAcceleration());	
 			}
-		} else if (aheadInfo.getX() - gps.getX() >= 20) {
-			setVelocity(aheadInfo.getVelocity() + 5);	// increase speed to catch up
+		} else if (frontVinfo.getX() - gps.getX() >= 20) {
+			setVelocity(frontVinfo.getVelocity() + 5);	// increase speed to catch up
 			setAcceleration(0);
-		} else if (aheadInfo.getX() - gps.getX() <= 10) {
-			setVelocity(aheadInfo.getVelocity() - 5);	// decrease speed to slow down
+		} else if (frontVinfo.getX() - gps.getX() <= 10) {
+			setVelocity(frontVinfo.getVelocity() - 5);	// decrease speed to slow down
 			setAcceleration(0);
 		} else {
-			setVelocity(aheadInfo.getVelocity());
-			setAcceleration(aheadInfo.getAcceleration());				
+			setVelocity(frontVinfo.getVelocity());
+			setAcceleration(frontVinfo.getAcceleration());				
 		}
 	}
 	
@@ -282,29 +296,59 @@ public abstract class Vehicle {
 		setGPS(VehicleHandler.computeGPS(gps, velocity, acceleration, dt));
 		
 		if (gps.getX() >= 4000 && gps.getX() <= 5000) {
-			if (aheadInfo != null && aheadInfo.getVelocity() <= 20) {
-				setVelocity(aheadInfo.getVelocity());
-				setAcceleration(aheadInfo.getAcceleration());
+			if (frontVinfo != null && frontVinfo.getVelocity() <= 20) {
+				setVelocity(frontVinfo.getVelocity());
+				setAcceleration(frontVinfo.getAcceleration());
 			} else {
 				setVelocity(20);
 				setAcceleration(0);
 			}
-		} else if (aheadInfo != null) {
-			if (aheadInfo.getX() - gps.getX() >= 20) {
-				setVelocity(aheadInfo.getVelocity() + 5);	// increase speed to catch up
-				setAcceleration(0);
-			} else if (aheadInfo.getX() - gps.getX() <= 10) {
-				setVelocity(aheadInfo.getVelocity() - 5);	// decrease speed to slow down
-				setAcceleration(0);
+		} else if (frontVinfo != null) {
+			
+			if (letCarIn > 0) {		// 
+				if (frontVinfo.getX() - gps.getX() >= 30) {
+					setVelocity(frontVinfo.getVelocity() + 5);	// increase speed to catch up
+					setAcceleration(0);
+				} else if (frontVinfo.getX() - gps.getX() <= 20) {
+					setVelocity(frontVinfo.getVelocity() - 5);	// decrease speed to slow down
+					setAcceleration(0);
+				} else {
+					setVelocity(frontVinfo.getVelocity());
+					setAcceleration(frontVinfo.getAcceleration());
+					sendSpecificPacket("ok", 1, letCarIn);
+					letCarIn = 0;
+				}				
 			} else {
-				setVelocity(aheadInfo.getVelocity());
-				setAcceleration(aheadInfo.getAcceleration());	
+				if (frontVinfo.getX() - gps.getX() >= 20) {
+					setVelocity(frontVinfo.getVelocity() + 5);	// increase speed to catch up
+					setAcceleration(0);
+				} else if (frontVinfo.getX() - gps.getX() <= 10) {
+					setVelocity(frontVinfo.getVelocity() - 5);	// decrease speed to slow down
+					setAcceleration(0);
+				} else {
+					setVelocity(frontVinfo.getVelocity());
+					setAcceleration(frontVinfo.getAcceleration()); 
+					if (gps.getY() != 0) {		// in the case of not in roadtrain
+						sendSpecificPacket("ackjoin", 1, front);
+						gps.setY(0); 	// merge to the right lane, & join the road train						
+					}
+				}				
 			}
 		} else {
 			setVelocity(VehicleHandler.computeVelocity(velocity, acceleration, dt));
 			setAcceleration();			
 		}
 		
+	}
+	
+	public void sendSpecificPacket(String pType, int dest, int info) {
+		if (nodesMap == null)
+			return;
+		Packet specialPacket = initPacket(pType, dest, info);
+		Node sourceNode = nodesMap.get(dest);
+		// TODO: Send at most 3 times, but notice that this method is in ServerThread
+		ClientThread tempClient = new ClientThread(sourceNode.getHostname(), sourceNode.getPortNumber(), specialPacket);
+		tempClient.run();	
 	}
 	
 //	public void startAll() {
@@ -334,6 +378,29 @@ public abstract class Vehicle {
 		}
 		
 	}
+	
+	
+	public class BroadcastClient implements Runnable {
+		public static final String BROADCAST_ADDRESS = "131.204.14.255";
+		@Override
+		public void run() {
+			try {
+				DatagramSocket socket = new DatagramSocket();
+				socket.setBroadcast(true);
+				Packet packetToSend = initPacket();
+				byte[] buffer = PacketHandler.packetAssembler(packetToSend);
+				InetAddress addr = InetAddress.getByName(BROADCAST_ADDRESS);
+				DatagramPacket packet = new DatagramPacket(buffer, buffer.length, addr, SERVER_PORT);
+				socket.send(packet);
+				socket.close();
+			} catch (SocketException | UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	
 	public class ConfigThread extends Thread {
 		@Override

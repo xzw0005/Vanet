@@ -59,8 +59,6 @@ public class LeadingTruck extends Vehicle {
 	public void receivePacket(Packet packetReceived) {
 		Header header = packetReceived.getHeader();
 		int prevHop = header.getPrevHop();
-
-		
 		
 		int source = header.getSource();
 		int sn = header.getSeqNum();
@@ -77,35 +75,83 @@ public class LeadingTruck extends Vehicle {
 		}
 	}
 	
+	/*
+	 * Should be implemented as binary search
+	 */
+	public int findToFollow(int toJoin) {
+		double toJoinX = nodesMap.get(toJoin).getX();
+		int toFollow = roadTrainList.getLast();
+		if (toFollow == nodeID)
+			return toFollow;
+		for (int i = roadTrainList.size()-1; i > 0; i--) {
+			int nid = roadTrainList.get(i);
+			if (nodesMap.get(nid).getX() < toJoinX)
+				return toFollow;
+			else
+				toFollow = nid;
+		}
+		return toFollow;
+	}
 	
 	@Override
 	public void processJoinRequest(int source) {
 		if (!roadTrainList.contains(source)) {
-			int lastInTrain = roadTrainList.getLast();		// Tell the source (the one who wanna join) to follow the last in road train
-			initPacket("ackJoin", source, lastInTrain);	// TODO LATER: implement as the nearest ahead node for source
+//			int lastInTrain = roadTrainList.getLast();		// Tell the source (the one who wanna join) to follow the last in road train
+			int toFollow = findToFollow(source);
+			if (toFollow == nodeID) 
+				sendSpecificPacket("ackJoin", source, toFollow);
+			else {
+				int index = roadTrainList.indexOf(Integer.valueOf(toFollow));
+				int toNotify = roadTrainList.get(index + 1);
+				sendSpecificPacket("notify", toNotify, source);
+			}
+		} else {
+			int index = roadTrainList.indexOf(Integer.valueOf(source) - 1);
+			int toFollow = roadTrainList.get(index);
+			sendSpecificPacket("ackJoin", source, toFollow);			
 		}
 	}
 	
 	@Override
-	public void processAckJoin(int source, int info) {
-		roadTrainList.addLast(source);
+	public void processAckJoin(int source, int toFollow) {
+//		roadTrainList.addLast(source);
+		int index = roadTrainList.indexOf(Integer.valueOf(toFollow));
+		roadTrainList.add(index, source);
+		int toNotify = roadTrainList.get(index + 1);
+//		// Inform the notified node update its ahead vehicle as the one joined road train recently
+		sendSpecificPacket("update", toNotify, source);	
+	}
+		
+	/*
+	 * Send ACKJOIN to the one want to join, tell it which node to follow
+	 */
+	@Override
+	public void processOK(int source, int toJoin) {
+		int index = roadTrainList.indexOf(Integer.valueOf(source));
+		int toFollow = roadTrainList.get(index - 1);
+		sendSpecificPacket("ackJoin", toJoin, toFollow);	
 	}
 	
 	@Override
 	public void processLeaveRequest(int source) {
 		if (roadTrainList.contains(source)) {
-			initPacket("ackLeave", source, 0);
+			int index = roadTrainList.indexOf(Integer.valueOf(source));
+			if (index < roadTrainList.size()) {
+				int toNotify = roadTrainList.get(index + 1);	// The one behind i should be notified
+				int toFollow = roadTrainList.get(index - 1);	// Tell it to follow the one previously before i
+				sendSpecificPacket("ackLeave", toNotify, toFollow);				
+			} else 	// in the case that the leaving vehicle is the last one in the road train
+				roadTrainList.removeLast();						// Update roadTrainList
 		}
 	}
 	
 	@Override
-	public void processAckLeave(int source, int info) {
-		int i = roadTrainList.indexOf(Integer.valueOf(source));
-		int dest = roadTrainList.get(i + 1);	// The one behind i should be notified
-		int prev = roadTrainList.get(i - 1);	// Tell it to follow the one previously before i
-		roadTrainList.remove(i);				// Update roadTrainList
-		initPacket("nofifyLeave", dest, prev);		
+	public void processAckLeave(int source, int toDelete) {
+//		int leftIndex = roadTrainList.indexOf(source) - 1;
+//		if (roadTrainList.get(leftIndex) != toDelete)
+//			System.err.println("Something is wrong with the road train list!");
+		if (roadTrainList.contains(toDelete))
+			roadTrainList.remove(Integer.valueOf(toDelete));				// Update roadTrainList
 	}
-	
 	
 }

@@ -19,7 +19,7 @@ public class FollowingVehicle extends Vehicle {
 	public double RANDOM_V = 20 + Math.random() * 10;
 	
 	private boolean waitingAckJoin;
-	private boolean waitingAckLeave;
+//	private boolean waitingAckLeave;
 	private KeyboardListenerThread kt;
 	
 	public FollowingVehicle(int nodeId) {
@@ -32,7 +32,7 @@ public class FollowingVehicle extends Vehicle {
 		this.setAcceleration();
 		
 		this.waitingAckJoin = false;
-		this.waitingAckLeave = false;
+//		this.waitingAckLeave = false;
 	}
 	
 	public FollowingVehicle(int nodeId, double init_x) {
@@ -45,7 +45,7 @@ public class FollowingVehicle extends Vehicle {
 		this.setAcceleration();
 		
 		this.waitingAckJoin = false;
-		this.waitingAckLeave = false;		
+//		this.waitingAckLeave = false;		
 	}
 
 	public FollowingVehicle(int nodeId, double init_x, double init_v) {
@@ -56,7 +56,7 @@ public class FollowingVehicle extends Vehicle {
 		this.setVelocity(init_v);
 		this.setAcceleration();		
 		this.waitingAckJoin = false;
-		this.waitingAckLeave = false;	
+//		this.waitingAckLeave = false;	
 	}		
 
 	
@@ -102,40 +102,10 @@ public class FollowingVehicle extends Vehicle {
 		}
 	}
 	
-	
-	
-	
-	
-	public void joinRoadTrain() {
-		// TODO
-		
-		gps.setY(0); 	// merge to the right lane, & join the road train
-	}
-	
-	public void leaveRoadTrain() {
-		// TODO
-		
-		gps.setY(5);	// switch to the left lane, & leave the road train
-	}
-	
-	
-	public void processAckJoin(int source, int ahead) {
+	public void processAckJoin(int source, int toFollow) {
 		if (waitingAckJoin) {
 			waitingAckJoin = false;
-			this.ahead = ahead;
-			initPacket("ackJoin", 1, ahead);
-			joinRoadTrain();
-		}
-	}
-	
-	@Override
-	public void processAckLeave(int source, int ahead) {
-		if (waitingAckLeave) {
-			waitingAckLeave = false;
-			ahead = 0;
-			aheadInfo = null;
-			initPacket("ackLeave", 1, 0);
-			leaveRoadTrain();	
+			this.front = toFollow;
 		}
 	}
 	
@@ -143,43 +113,58 @@ public class FollowingVehicle extends Vehicle {
 	 * The notifyLeave must be sent from the leading vehicle
 	 * to notify this vehicle to change the vehicle ahead and catch up
 	 */
-	public void processNotifyLeave(int source, int newAhead) {
-		if (VehicleHandler.isInRoadTrain(gps)) {
-			ahead = newAhead;
-			// CATCHUP PREV
+	@Override
+	public void processAckLeave(int source, int toFollow) {
+		if (front > 0) {
+			int toDelete = front;
+			front = toFollow;
+			sendSpecificPacket("ackLeave", source, toDelete);
 		}
 	}
-	
+		
 	public class KeyboardListenerThread extends Thread {
 		private Scanner sc;
 
 		@Override
 		public void run() {
+			int dest = 1;
 			while (true) {
 				System.out.println("Keyboard Thread Listening...");
 				sc = new Scanner(System.in);
 				String request = sc.next();
-				System.out.println("@@" + request);
-
+				int counter = 0;
 				if ((!VehicleHandler.isInRoadTrain(gps)) && (request.equalsIgnoreCase("join"))) {
 					System.out.println("Node " + nodeID +  " is sending JOIN request...");
 					waitingAckJoin = true;
-					while (waitingAckJoin) {
-						initPacket("join", 1, 0);	// send JOIN request to the leading truck
+					while (waitingAckJoin && counter < 3) {
+						// send JOIN request to the leading truck
+//						Packet joinRequest = initPacket("join", dest, 0);
+//						sendToLead(joinRequest);
+						sendSpecificPacket("join", dest, 0);
+						counter++;
 						try {
-							Thread.sleep(750);
+							Thread.sleep(3000);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
 						
 					}
 				} else if ((VehicleHandler.isInRoadTrain(gps)) && (request.equalsIgnoreCase("leave"))) {
-					System.out.println("Node " + nodeID +  " is sending LEAVE request...");
-					waitingAckLeave = true;
-					while (waitingAckLeave) {
-						initPacket("leave", 1, ahead);	// send LEAVE request to the leading truck
+					System.out.println("Node " + nodeID +  " is sending LEAVE notification...");
+//					waitingAckLeave = true;
+					while (counter < 3) {
+						// send LEAVE request to the leading truck
+//						Packet leaveRequest = initPacket("leave", dest, ahead);	
+//						sendToLead(leaveRequest);
+						if (front > 0) {
+							front = 0;
+							frontVinfo = null;
+							gps.setY(0);
+							setAcceleration(0);
+						}
+						sendSpecificPacket("leave", dest, 0);
 						try {
-							Thread.sleep(750);
+							Thread.sleep(3000);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
@@ -188,6 +173,7 @@ public class FollowingVehicle extends Vehicle {
 			}			
 		}
 	}
+	
 	
 	
 }
