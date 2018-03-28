@@ -111,9 +111,10 @@ public class LeadingTruck extends Vehicle {
 				sendSpecificPacket("notify", toNotify, source);
 			}
 		} else {
-			int index = roadTrainList.indexOf(Integer.valueOf(source));
-			int toFollow = roadTrainList.get(index - 1);
-			sendSpecificPacket("ackJoin", source, toFollow);			
+			System.out.println("Already in Road Train, Why Bother me????????????????");
+//			int index = roadTrainList.indexOf(Integer.valueOf(source));
+//			int toFollow = roadTrainList.get(index - 1);
+//			sendSpecificPacket("ackJoin", source, toFollow);			
 		}
 	}
 	
@@ -145,24 +146,24 @@ public class LeadingTruck extends Vehicle {
 	public void processLeaveRequest(int source) {
 		if (roadTrainList.contains(source)) {
 			int index = roadTrainList.indexOf(Integer.valueOf(source));
-			if (index + 1 < roadTrainList.size()) {
-
-				
+			if (index + 1 < roadTrainList.size()) {				
 				int toNotify = roadTrainList.get(index + 1);	// The one behind i should be notified
 				int toFollow = roadTrainList.get(index - 1);	// Tell it to follow the one previously before i
 				sendSpecificPacket("ackLeave", toNotify, toFollow);				
-			} else 	// in the case that the leaving vehicle is the last one in the road train
-				roadTrainList.removeLast();						// Update roadTrainList
+			} 
+			roadTrainList.remove(index);	// Update roadTrainList
+//			else 	// in the case that the leaving vehicle is the last one in the road train
+//				roadTrainList.removeLast();						// Update roadTrainList
 		}
 	}
 	
-	@Override
-	public void processAckLeave(int source, int toDelete) {
-//		int leftIndex = roadTrainList.indexOf(source) - 1;
-//		if (roadTrainList.get(leftIndex) != toDelete)
-//			System.err.println("Something is wrong with the road train list!");
-		if (roadTrainList.contains(toDelete))
-			roadTrainList.remove(Integer.valueOf(toDelete));				// Update roadTrainList
-	}
+//	@Override
+//	public void processAckLeave(int source, int toDelete) {
+////		int leftIndex = roadTrainList.indexOf(source) - 1;
+////		if (roadTrainList.get(leftIndex) != toDelete)
+////			System.err.println("Something is wrong with the road train list!");
+//		if (roadTrainList.contains(toDelete))
+//			roadTrainList.remove(Integer.valueOf(toDelete));				// Update roadTrainList
+//	}
 	
 }

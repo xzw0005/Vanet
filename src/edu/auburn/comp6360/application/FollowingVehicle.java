@@ -116,9 +116,9 @@ public class FollowingVehicle extends Vehicle {
 	@Override
 	public void processAckLeave(int source, int toFollow) {
 		if (front > 0) {
-			int toDelete = front;
+//			int toDelete = front;
 			front = toFollow;
-			sendSpecificPacket("ackLeave", source, toDelete);
+//			sendSpecificPacket("ackLeave", source, toDelete);
 		}
 	}
 		

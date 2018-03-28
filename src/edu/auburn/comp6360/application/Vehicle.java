@@ -358,6 +358,7 @@ public abstract class Vehicle {
 		Packet specialPacket = initPacket(pType, dest, info);
 		System.out.println(specialPacket.toString());
 		Node destNode = nodesMap.get(dest);
+		System.out.println(destNode.toString());
 		System.out.println(destNode.getHostname() + ":::::::" + destNode.getPortNumber());
 		// TODO: Send at most 3 times, but notice that this method is in ServerThread
 		ClientThread tempClient = new ClientThread(destNode.getHostname(), destNode.getPortNumber(), specialPacket);
