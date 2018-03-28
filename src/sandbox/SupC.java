@@ -13,14 +13,24 @@ public class SupC {
 		System.out.println("Super Class Method!");
 	}
 	
-	public void msu() {
-		++i;
+	public void msu(int j) {
+		++j;
 	}
 	
 	public void mp() {
-		this.msu();
+		this.msu(i);
 		System.out.println(i);
 	}
 
-	
+	private class nestedC {
+		
+		private int i = 5;
+		
+		private int nm(int i) {
+			msu(i);
+			return i;
+		}
+		
+		
+	}
 }

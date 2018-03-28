@@ -18,8 +18,7 @@ public class FollowingVehicle extends Vehicle {
 	public double RANDOM_X = Math.random() * 300;
 	public double RANDOM_V = 20 + Math.random() * 10;
 	
-	private boolean waitingAckJoin;
-//	private boolean waitingAckLeave;
+
 	private KeyboardListenerThread kt;
 	
 	public FollowingVehicle(int nodeId) {
@@ -30,9 +29,6 @@ public class FollowingVehicle extends Vehicle {
 		this.setLength(CAR_LENGTH);
 		this.setVelocity(RANDOM_V);
 		this.setAcceleration();
-		
-		this.waitingAckJoin = false;
-//		this.waitingAckLeave = false;
 	}
 	
 	public FollowingVehicle(int nodeId, double init_x) {
@@ -42,10 +38,7 @@ public class FollowingVehicle extends Vehicle {
 		this.setWidth(CAR_WIDTH);
 		this.setLength(CAR_LENGTH);
 		this.setVelocity(RANDOM_V);
-		this.setAcceleration();
-		
-		this.waitingAckJoin = false;
-//		this.waitingAckLeave = false;		
+		this.setAcceleration();	
 	}
 
 	public FollowingVehicle(int nodeId, double init_x, double init_v) {
@@ -55,8 +48,6 @@ public class FollowingVehicle extends Vehicle {
 		this.setLength(CAR_LENGTH);
 		this.setVelocity(init_v);
 		this.setAcceleration();		
-		this.waitingAckJoin = false;
-//		this.waitingAckLeave = false;	
 	}		
 
 	
@@ -84,27 +75,10 @@ public class FollowingVehicle extends Vehicle {
 	}	
 	
 	
-//	public void receivePacket(Packet packetReceived) {
-//		Header header = packetReceived.getHeader();
-//		int source = header.getSource();
-//		int sn = header.getSeqNum();
-//		int prevHop = header.getPrevHop();
-//		String packetType = header.getPacketType();
-//		if (packetType.equals("normal"))  {
-//			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
-//				VehicleInfo vInfo = packetReceived.getVehicleInfo();
-//				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
-//				sendPacket(packetReceived, source, sn, prevHop);
-//			}
-//		} else {		// in the case that of not normal packets
-//			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
-//				sendPacket(packetReceived, source, sn, prevHop);
-//		}
-//	}
-	
+	@Override	
 	public void processAckJoin(int source, int toFollow) {
-		if (waitingAckJoin) {
-			waitingAckJoin = false;
+		if (waitJoinReply > 0) {
+			waitJoinReply = 0;
 			this.front = toFollow;
 		}
 	}
@@ -135,7 +109,7 @@ public class FollowingVehicle extends Vehicle {
 				int counter = 0;
 				if ((!VehicleHandler.isInRoadTrain(gps)) && (request.equalsIgnoreCase("join"))) {
 					System.out.println("Node " + nodeID +  " is sending JOIN request...");
-					waitingAckJoin = true;
+					waitJoinReply = 1;
 //					while (waitingAckJoin && counter < 3) {
 						// send JOIN request to the leading truck
 //						Packet joinRequest = initPacket("join", dest, 0);

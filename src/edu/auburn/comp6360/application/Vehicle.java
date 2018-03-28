@@ -48,6 +48,15 @@ public abstract class Vehicle {
 	protected RbaCache cache;
 	protected int front;
 	protected VehicleInfo frontVinfo;
+	
+	// States for Sending & Receiving packet types
+	protected String pType;
+	protected int waitJoinReply;
+	protected int waitOK;
+	
+//	private boolean waitingAckLeave;
+	
+	
 	protected int letCarIn;
 	
 	protected ExecutorService executor;
@@ -91,6 +100,7 @@ public abstract class Vehicle {
 		front = 0;
 		frontVinfo = null;
 		letCarIn = 0;
+		pType = "normal";
 	}
 	
 	public void setLength(double length) {
@@ -168,7 +178,7 @@ public abstract class Vehicle {
 		Header header = new Header(type, source, sn, prevHop);
 		if (!type.equals("normal")) {
 			header.setDest(dest);
-			header.setExtraInfo(extraInfo);
+			header.setPiggyback(extraInfo);
 		}
 		Packet packetToSend = new Packet(header);
 		if (type.equals("normal")) {
@@ -197,9 +207,9 @@ public abstract class Vehicle {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
 					packetToSend.getHeader().setPrevHop(this.nodeID);
-					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
-					ct.run();
-//					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
+//					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
+//					ct.run();
+					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
 				}
 			}
 		}				
@@ -237,7 +247,7 @@ public abstract class Vehicle {
 				sendPacket(packetReceived, source, sn, prevHop);
 			else if (header.getDest() == this.nodeID) {
 				System.out.println("Received " + packetType + " message from Node " + source);
-				int info = header.getExtraInfo();
+				int info = header.getPiggyback();
 				if (packetType.equals("join"))
 					processJoinRequest(source);
 				else if (packetType.equals("leave"))
@@ -247,11 +257,13 @@ public abstract class Vehicle {
 				else if (packetType.equals("ackLeave"))
 					processAckLeave(source, info);
 				else if (packetType.equals("notify"))
-					letCarIn = header.getExtraInfo();
+					letCarIn = header.getPiggyback();
 				else if (packetType.equals("ok"))
 					processOK(source, info);
-				else if (packetType.equals("update")) 
-					front = header.getExtraInfo();
+				else if (packetType.equals("update")) {
+					front = header.getPiggyback();
+					waitOK = 0;
+				}
 			}
 		}
 	}
@@ -328,6 +340,7 @@ public abstract class Vehicle {
 					setVelocity(frontVinfo.getVelocity());
 					setAcceleration(frontVinfo.getAcceleration());
 					sendSpecificPacket("ok", 1, letCarIn);
+					waitOK = 1;
 					letCarIn = 0;
 				}				
 			} else {
@@ -368,16 +381,17 @@ public abstract class Vehicle {
 		ClientThread tempClient = new ClientThread(destNode.getHostname(), destNode.getPortNumber(), specialPacket);
 		tempClient.run();		
 	}
+
 	
-//	public void startAll() {
-//		bt = new BroadcastThread();
-//		ct = new ConfigThread();
-//		st = new ServerThread(SERVER_PORT+nodeID);
-//
-//		bt.start();
-//		ct.start();
-//		st.run();
-//	}
+	public void startAll() {
+		bt = new BroadcastThread();
+		ct = new ConfigThread();
+		st = new ServerThread(SERVER_PORT+nodeID);
+
+		bt.start();
+		ct.start();
+		st.run();
+	}
 
 	public class BroadcastThread extends Thread {
 		

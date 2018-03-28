@@ -40,6 +40,7 @@ public class LeadingTruck extends Vehicle {
 		this.setAcceleration(Math.random() * 2 - 1);
 	}
 	
+	@Override	
 	public void startAll() {
 //		super.startAll();
 //		RoadTrainHandlerThread train = new RoadTrainHandlerThread();
@@ -54,26 +55,6 @@ public class LeadingTruck extends Vehicle {
 		st.run();
 		
 	}
-	
-	
-//	public void receivePacket(Packet packetReceived) {
-//		Header header = packetReceived.getHeader();
-//		int prevHop = header.getPrevHop();
-//		
-//		int source = header.getSource();
-//		int sn = header.getSeqNum();
-//		String packetType = header.getPacketType();
-//		if (packetType.equals("normal"))  {
-//			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
-//				VehicleInfo vInfo = packetReceived.getVehicleInfo();
-//				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
-//				sendPacket(packetReceived, source, sn, prevHop);
-//			}
-//		} else {		// in the case that of not normal packets
-//			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
-//				sendPacket(packetReceived, source, sn, prevHop);
-//		}
-//	}
 	
 	/*
 	 * Better be implemented as binary search
@@ -95,7 +76,11 @@ public class LeadingTruck extends Vehicle {
 	
 	@Override
 	public void processJoinRequest(int source) {
+		if (waitJoinReply != source)
+			return;
+		
 		if (!roadTrainList.contains(source)) {
+			waitJoinReply = source;
 //			int lastInTrain = roadTrainList.getLast();		// Tell the source (the one who wanna join) to follow the last in road train
 			int toFollow = findToFollow(source);
 			if (toFollow == roadTrainList.getLast()) 
@@ -110,6 +95,7 @@ public class LeadingTruck extends Vehicle {
 				
 				int toNotify = roadTrainList.get(index + 1);
 				sendSpecificPacket("notify", toNotify, source);
+				waitOK = toNotify;
 			}
 		} else {
 			System.out.println("Already in Road Train, Why Bother me????????????????");
@@ -121,6 +107,9 @@ public class LeadingTruck extends Vehicle {
 	
 	@Override
 	public void processAckJoin(int source, int toFollow) {
+		if ((waitJoinReply != source) || (waitOK != 0))
+			return;
+		waitJoinReply = 0;
 //		roadTrainList.addLast(source);
 		int index = roadTrainList.indexOf(Integer.valueOf(toFollow));
 //		// Inform the notified node update its ahead vehicle as the one joined road train recently
@@ -138,6 +127,9 @@ public class LeadingTruck extends Vehicle {
 	 */
 	@Override
 	public void processOK(int source, int toJoin) {
+		if ((waitJoinReply == 0) || (waitOK != source))
+			return;
+		waitOK = 0;
 		int index = roadTrainList.indexOf(Integer.valueOf(source));
 		int toFollow = roadTrainList.get(index - 1);
 		System.out.println("Node " + nodeID + " sending ackJoin to " + toJoin);
@@ -167,5 +159,17 @@ public class LeadingTruck extends Vehicle {
 //		if (roadTrainList.contains(toDelete))
 //			roadTrainList.remove(Integer.valueOf(toDelete));				// Update roadTrainList
 //	}
+	
+	public String getPacketType() {
+		if (waitJoinReply > 0) {
+			if (waitOK > 0)
+				return "notify";
+			else
+				return "joinReply";
+		}
+		
+		return "";
+	}
+	
 	
 }

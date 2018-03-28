@@ -15,7 +15,7 @@ public class Header implements Serializable {
 	
 	private String packetType; // "NORMAL", "JOIN", "LEAVE", "ACKJOIN", "ACKLEAVE"
 	private int dest;
-	private int extraInfo;
+	private int piggyback;
 	
 	public Header(String type, int source, int sn, int prevHop) {
 		this.packetType = type;
@@ -23,7 +23,7 @@ public class Header implements Serializable {
 		this.seqNum = sn;		
 		this.prevHop = prevHop;
 		this.dest = -1;
-		this.extraInfo = -1;
+		this.piggyback = -1;
 	}
 
 	public Header(String type, int source, int sn, int prevHop, int dest, int extraInfo) {
@@ -32,7 +32,7 @@ public class Header implements Serializable {
 		this.seqNum = sn;		
 		this.prevHop = prevHop;
 		this.dest = dest;
-		this.extraInfo = extraInfo;
+		this.piggyback = extraInfo;
 	}
 	
 	public int getSeqNum() {
@@ -55,8 +55,8 @@ public class Header implements Serializable {
 		return this.packetType;
 	}
 	
-	public int getExtraInfo() {
-		return this.extraInfo;
+	public int getPiggyback() {
+		return this.piggyback;
 	}
 
 	public void setPrevHop(int nodeID) {
@@ -67,8 +67,8 @@ public class Header implements Serializable {
 		this.dest = dest;
 	}
 	
-	public void setExtraInfo(int extraInfo) {
-		this.extraInfo = extraInfo;
+	public void setPiggyback(int extraInfo) {
+		this.piggyback = extraInfo;
 	}
 	
 //	public void setPacketType(int type) {
