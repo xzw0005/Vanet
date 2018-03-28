@@ -49,6 +49,8 @@ public class Packet implements Serializable {
 //		sb.append("source: " + this.getHeader().getSource() + ", ");
 		Header header = this.getHeader();
 		sb.append(header.getPacketType() + " " + header.getSeqNum() + ", from " + header.getSource() + ".\t");
+		if (!(header.getPacketType().equals("normal")))
+			sb.append("Piggybacked info: " + header.getExtraInfo() + ".\t");
 		if (this.getVehicleInfo() != null)
 			sb.append(this.getVehicleInfo().toString());
 		return sb.toString(); 

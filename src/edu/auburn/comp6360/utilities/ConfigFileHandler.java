@@ -6,8 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 //import java.util.Scanner;
-import java.util.SortedMap;
-import java.util.TreeMap;
+//import java.util.SortedMap;
+//import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -24,8 +25,9 @@ public class ConfigFileHandler {
 	}
 
 	
-	public SortedMap<Integer, Node> readConfigFile() {
-		SortedMap<Integer, Node> nodesMap = new TreeMap<Integer, Node>();
+	public ConcurrentSkipListMap<Integer, Node> readConfigFile() {
+//		SortedMap<Integer, Node> nodesMap = new TreeMap<Integer, Node>();
+		ConcurrentSkipListMap<Integer, Node> nodesMap = new ConcurrentSkipListMap<Integer, Node>();
 		List<String> lines = null;
 		try {
 			rwLock.readLock().lock();
@@ -79,8 +81,9 @@ public class ConfigFileHandler {
 		return nodesMap;
 	}
 	
-	public SortedMap<Integer, Node> writeConfigFile(Node updatedNode) {
-		SortedMap<Integer, Node> nodesMap = readConfigFile();
+	public ConcurrentSkipListMap<Integer, Node> writeConfigFile(Node updatedNode) {
+//		SortedMap<Integer, Node> nodesMap = readConfigFile();
+		ConcurrentSkipListMap<Integer, Node> nodesMap = readConfigFile();
 		updatedNode = VehicleHandler.updateNeighborsFromFile(updatedNode, nodesMap);
 //		for (SortedMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {	
 //			int i = entry.getKey();
@@ -121,7 +124,8 @@ public class ConfigFileHandler {
 	}
 	
 	public int newNodeID(String filename) {
-		SortedMap<Integer, Node> existingNodes = readConfigFile();
+//		SortedMap<Integer, Node> existingNodes = readConfigFile();
+		ConcurrentSkipListMap<Integer, Node> existingNodes = readConfigFile();
 		int numNodes = existingNodes.size();
 		return numNodes + 1;
 	}

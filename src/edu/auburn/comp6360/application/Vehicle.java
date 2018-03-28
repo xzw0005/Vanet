@@ -6,10 +6,11 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.Map;
-import java.util.SortedMap;
+//import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import java.util.SortedSet;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 
 import edu.auburn.comp6360.network.ClientThread;
@@ -36,11 +37,13 @@ public abstract class Vehicle {
 	
 	protected String hostName;
 //	protected int packetSeqNum;
-	protected Map<String, Integer> snMap;
+	protected ConcurrentHashMap<String, Integer> snMap;
 	
 	protected int nodeID;	
 	protected Node selfNode; 
-	protected SortedMap<Integer, Node> nodesMap; // from config file
+//	protected SortedMap<Integer, Node> nodesMap; // from config file
+	protected ConcurrentSkipListMap<Integer, Node> nodesMap;
+	
 	
 	protected RbaCache cache;
 	protected int front;
@@ -81,7 +84,8 @@ public abstract class Vehicle {
 			e.printStackTrace();
 		}
 		selfNode = new Node(nodeID, hostName, SERVER_PORT+nodeID, gps.getX(), gps.getY());
-		nodesMap = new TreeMap<Integer, Node>();
+//		nodesMap = new TreeMap<Integer, Node>();
+		nodesMap = new ConcurrentSkipListMap<Integer, Node>();
 		nodesMap.put(nodeID, selfNode);
 		cache = new RbaCache();
 		front = 0;
@@ -245,7 +249,7 @@ public abstract class Vehicle {
 				else if (packetType.equals("notify"))
 					letCarIn = header.getExtraInfo();
 				else if (packetType.equals("ok"))
-					processOK(source, letCarIn);
+					processOK(source, info);
 				else if (packetType.equals("update")) 
 					front = header.getExtraInfo();
 			}
@@ -356,7 +360,7 @@ public abstract class Vehicle {
 		if (nodesMap == null)
 			return;
 		Packet specialPacket = initPacket(pType, dest, info);
-		System.out.println(specialPacket.toString());
+		System.out.println(specialPacket.toString() + " Destination: Node " + dest);
 		Node destNode = nodesMap.get(dest);
 		System.out.println(destNode.toString());
 		System.out.println(destNode.getHostname() + ":::::::" + destNode.getPortNumber());

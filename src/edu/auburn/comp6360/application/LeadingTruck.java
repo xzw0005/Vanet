@@ -103,9 +103,10 @@ public class LeadingTruck extends Vehicle {
 			else {
 				int index = roadTrainList.indexOf(Integer.valueOf(toFollow));
 
-				System.out.println("@@" + index + " leaving... Road train length = " + roadTrainList.size());
+				StringBuffer sb = new StringBuffer("!!! RoadTrainList: ");
 				for (int i = 0; i < roadTrainList.size(); i++)
-					System.out.println(roadTrainList.get(i));
+					sb.append(" " + roadTrainList.get(i));
+				System.out.println(sb.toString());
 				
 				int toNotify = roadTrainList.get(index + 1);
 				sendSpecificPacket("notify", toNotify, source);
@@ -139,6 +140,7 @@ public class LeadingTruck extends Vehicle {
 	public void processOK(int source, int toJoin) {
 		int index = roadTrainList.indexOf(Integer.valueOf(source));
 		int toFollow = roadTrainList.get(index - 1);
+		System.out.println("Node " + nodeID + " sending ackJoin to " + toJoin);
 		sendSpecificPacket("ackJoin", toJoin, toFollow);	
 	}
 	

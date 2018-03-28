@@ -1,15 +1,16 @@
 package edu.auburn.comp6360.application;
 
-import java.util.HashMap;
-import java.util.Map;
-//import java.util.concurrent.ConcurrentHashMap;
+//import java.util.HashMap;
+//import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RbaCache {
 		
-	private Map<Integer, Map<String, CacheContent>> cacheMap = new HashMap<Integer, Map<String, CacheContent>>();
+//	private Map<Integer, Map<String, CacheContent>> cacheMap = new HashMap<Integer, Map<String, CacheContent>>();
+	private ConcurrentHashMap<Integer, ConcurrentHashMap<String, CacheContent>> cacheMap = new ConcurrentHashMap<Integer, ConcurrentHashMap<String, CacheContent>>();
 	
 	public RbaCache() {
-		cacheMap = new HashMap<Integer, Map<String, CacheContent>>();
+		cacheMap = new ConcurrentHashMap<Integer, ConcurrentHashMap<String, CacheContent>>();
 	}
 	
 	public int getPacketSeqNum(int source, String packetType) {
@@ -25,7 +26,7 @@ public class RbaCache {
 	public boolean updatePacketSeqNum(int source, String type, int sn, int nid) {
 		if (this.getPacketSeqNum(source, type) < sn) {
 			CacheContent content = new CacheContent(sn, 0);
-			Map<String, CacheContent> tempMap = new HashMap<String, CacheContent>();
+			ConcurrentHashMap<String, CacheContent> tempMap = new ConcurrentHashMap<String, CacheContent>();
 			tempMap.put(type, content);
 			cacheMap.put(source, tempMap);
 			return true;

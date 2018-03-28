@@ -1,8 +1,10 @@
 package edu.auburn.comp6360.utilities;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedMap;
+import java.util.concurrent.ConcurrentHashMap;
+//import java.util.HashMap;
+//import java.util.Map;
+//import java.util.SortedMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import edu.auburn.comp6360.application.GPS;
 import edu.auburn.comp6360.application.Node;
@@ -12,8 +14,8 @@ public class VehicleHandler {
 
 	public static final String[] PACKET_TYPES = {"normal", "join", "leave", "ackJoin", "ackLeave", "notify", "ok", "update"};
 
-	public static Map<String, Integer> initializeSequenceNumbers() {
-		Map<String, Integer> snMap= new HashMap<String, Integer>();
+	public static ConcurrentHashMap<String, Integer> initializeSequenceNumbers() {
+		ConcurrentHashMap<String, Integer> snMap= new ConcurrentHashMap<String, Integer>();
 		for (String type : PACKET_TYPES) {
 			snMap.put(type, 0);
 		}
@@ -90,8 +92,8 @@ public class VehicleHandler {
 	/*
 	 * Only add neighbor according to the config file, if the link has not been there already.
 	 */
-	public static Node updateNeighborsFromFile(Node selfNode, SortedMap<Integer, Node> nodesMap) {
-		for (SortedMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {	
+	public static Node updateNeighborsFromFile(Node selfNode, ConcurrentSkipListMap<Integer, Node> nodesMap) {
+		for (ConcurrentSkipListMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {	
 			int i = entry.getKey();
 			if (i != selfNode.getNodeID()) { //&& (!selfNode.getLinks().contains(i))) {
 				if (inTransmissionRange(entry.getValue(), selfNode))
