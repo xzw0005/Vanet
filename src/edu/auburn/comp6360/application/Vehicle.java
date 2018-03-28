@@ -149,6 +149,8 @@ public abstract class Vehicle {
 	
 	
 	public int inreaseSeqNum(String packetType) {
+		if (this.snMap.get(packetType) == null)
+			System.out.println(packetType);
 		int sn = this.snMap.get(packetType);
 		this.snMap.put(packetType, ++sn);
 		return sn;
@@ -170,7 +172,7 @@ public abstract class Vehicle {
 			packetToSend.setVehicleInfo(vInfo);
 		}
 		this.cache.updatePacketSeqNum(source, type, sn, getNodeID());
-		sendPacket(packetToSend, source, sn, prevHop);
+//		sendPacket(packetToSend, source, sn, prevHop);
 //		if (!type.equals("normal"))
 //			System.out.println(packetToSend.toString());
 		return packetToSend;
@@ -220,11 +222,17 @@ public abstract class Vehicle {
 				if (front == source) {
 					frontVinfo = vInfo;
 				}
+				if (sn % 100 == 0) {
+					System.out.println(packetReceived.toString());
+					System.out.println("Node " + nodeID + " is following " + front);
+				}
+				
 			}
 		} else {		// in the case that of not normal packets
 			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
 				sendPacket(packetReceived, source, sn, prevHop);
 			else if (header.getDest() == this.nodeID) {
+				System.out.println("Received " + packetType + " message from Node " + source);
 				int info = header.getExtraInfo();
 				if (packetType.equals("join"))
 					processJoinRequest(source);
@@ -329,13 +337,16 @@ public abstract class Vehicle {
 					setVelocity(frontVinfo.getVelocity());
 					setAcceleration(frontVinfo.getAcceleration()); 
 					if (gps.getY() != 0) {		// in the case of not in roadtrain
-						sendSpecificPacket("ackjoin", 1, front);
+						sendSpecificPacket("ackJoin", 1, front);
 						gps.setY(0); 	// merge to the right lane, & join the road train						
 					}
 				}				
 			}
 		} else {
-			setVelocity(VehicleHandler.computeVelocity(velocity, acceleration, dt));
+			if ((gps.getX() > 5000) && (velocity < 21))
+				setVelocity(30);
+			else
+				setVelocity(VehicleHandler.computeVelocity(velocity, acceleration, dt));
 			setAcceleration();			
 		}
 		
@@ -345,10 +356,12 @@ public abstract class Vehicle {
 		if (nodesMap == null)
 			return;
 		Packet specialPacket = initPacket(pType, dest, info);
-		Node sourceNode = nodesMap.get(dest);
+		System.out.println(specialPacket.toString());
+		Node destNode = nodesMap.get(dest);
+		System.out.println(destNode.getHostname() + ":::::::" + destNode.getPortNumber());
 		// TODO: Send at most 3 times, but notice that this method is in ServerThread
-		ClientThread tempClient = new ClientThread(sourceNode.getHostname(), sourceNode.getPortNumber(), specialPacket);
-		tempClient.run();	
+		ClientThread tempClient = new ClientThread(destNode.getHostname(), destNode.getPortNumber(), specialPacket);
+		tempClient.run();		
 	}
 	
 //	public void startAll() {
@@ -367,7 +380,8 @@ public abstract class Vehicle {
 		public void run() {
 			while (true) {
 				try {
-					initPacket();
+					Packet p = initPacket();
+					sendPacket(p, p.getHeader().getSource(), p.getHeader().getSeqNum(), p.getHeader().getPrevHop()); 
 					Thread.sleep(10);
 //					System.out.println("gogo");
 					sensorUpdate();

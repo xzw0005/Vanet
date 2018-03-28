@@ -2,10 +2,10 @@ package edu.auburn.comp6360.application;
 
 import java.util.LinkedList;
 
-import edu.auburn.comp6360.network.Header;
-import edu.auburn.comp6360.network.Packet;
-import edu.auburn.comp6360.network.VehicleInfo;
-import edu.auburn.comp6360.utilities.VehicleHandler;
+//import edu.auburn.comp6360.network.Header;
+//import edu.auburn.comp6360.network.Packet;
+//import edu.auburn.comp6360.network.VehicleInfo;
+//import edu.auburn.comp6360.utilities.VehicleHandler;
 
 public class LeadingTruck extends Vehicle {	
 
@@ -56,39 +56,39 @@ public class LeadingTruck extends Vehicle {
 	}
 	
 	
-	public void receivePacket(Packet packetReceived) {
-		Header header = packetReceived.getHeader();
-		int prevHop = header.getPrevHop();
-		
-		int source = header.getSource();
-		int sn = header.getSeqNum();
-		String packetType = header.getPacketType();
-		if (packetType.equals("normal"))  {
-			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
-				VehicleInfo vInfo = packetReceived.getVehicleInfo();
-				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
-				sendPacket(packetReceived, source, sn, prevHop);
-			}
-		} else {		// in the case that of not normal packets
-			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
-				sendPacket(packetReceived, source, sn, prevHop);
-		}
-	}
+//	public void receivePacket(Packet packetReceived) {
+//		Header header = packetReceived.getHeader();
+//		int prevHop = header.getPrevHop();
+//		
+//		int source = header.getSource();
+//		int sn = header.getSeqNum();
+//		String packetType = header.getPacketType();
+//		if (packetType.equals("normal"))  {
+//			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
+//				VehicleInfo vInfo = packetReceived.getVehicleInfo();
+//				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
+//				sendPacket(packetReceived, source, sn, prevHop);
+//			}
+//		} else {		// in the case that of not normal packets
+//			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
+//				sendPacket(packetReceived, source, sn, prevHop);
+//		}
+//	}
 	
 	/*
-	 * Should be implemented as binary search
+	 * Better be implemented as binary search
 	 */
 	public int findToFollow(int toJoin) {
+		int trainLen = roadTrainList.size();
+		if (trainLen == 1)
+			return nodeID;
 		double toJoinX = nodesMap.get(toJoin).getX();
 		int toFollow = roadTrainList.getLast();
-		if (toFollow == nodeID)
-			return toFollow;
-		for (int i = roadTrainList.size()-1; i > 0; i--) {
-			int nid = roadTrainList.get(i);
-			if (nodesMap.get(nid).getX() < toJoinX)
+		for (int i = trainLen - 2; i >= 0; i--) {
+			if (nodesMap.get(toFollow).getX() > toJoinX)
 				return toFollow;
 			else
-				toFollow = nid;
+				toFollow = roadTrainList.get(i);				
 		}
 		return toFollow;
 	}
@@ -98,16 +98,21 @@ public class LeadingTruck extends Vehicle {
 		if (!roadTrainList.contains(source)) {
 //			int lastInTrain = roadTrainList.getLast();		// Tell the source (the one who wanna join) to follow the last in road train
 			int toFollow = findToFollow(source);
-			if (toFollow == nodeID) 
+			if (toFollow == roadTrainList.getLast()) 
 				sendSpecificPacket("ackJoin", source, toFollow);
 			else {
 				int index = roadTrainList.indexOf(Integer.valueOf(toFollow));
+
+				System.out.println("@@" + index + " leaving... Road train length = " + roadTrainList.size());
+				for (int i = 0; i < roadTrainList.size(); i++)
+					System.out.println(roadTrainList.get(i));
+				
 				int toNotify = roadTrainList.get(index + 1);
 				sendSpecificPacket("notify", toNotify, source);
 			}
 		} else {
-			int index = roadTrainList.indexOf(Integer.valueOf(source) - 1);
-			int toFollow = roadTrainList.get(index);
+			int index = roadTrainList.indexOf(Integer.valueOf(source));
+			int toFollow = roadTrainList.get(index - 1);
 			sendSpecificPacket("ackJoin", source, toFollow);			
 		}
 	}
@@ -116,10 +121,14 @@ public class LeadingTruck extends Vehicle {
 	public void processAckJoin(int source, int toFollow) {
 //		roadTrainList.addLast(source);
 		int index = roadTrainList.indexOf(Integer.valueOf(toFollow));
-		roadTrainList.add(index, source);
-		int toNotify = roadTrainList.get(index + 1);
 //		// Inform the notified node update its ahead vehicle as the one joined road train recently
-		sendSpecificPacket("update", toNotify, source);	
+		if (index + 1 < roadTrainList.size()) {		// Make sure toFollow is not the last in road train list
+			int toNotify = roadTrainList.get(index + 1);
+			sendSpecificPacket("update", toNotify, source);	
+		}
+		if (!roadTrainList.contains(Integer.valueOf(source)))
+			roadTrainList.add(index + 1, source);			
+			
 	}
 		
 	/*
@@ -136,7 +145,9 @@ public class LeadingTruck extends Vehicle {
 	public void processLeaveRequest(int source) {
 		if (roadTrainList.contains(source)) {
 			int index = roadTrainList.indexOf(Integer.valueOf(source));
-			if (index < roadTrainList.size()) {
+			if (index + 1 < roadTrainList.size()) {
+
+				
 				int toNotify = roadTrainList.get(index + 1);	// The one behind i should be notified
 				int toFollow = roadTrainList.get(index - 1);	// Tell it to follow the one previously before i
 				sendSpecificPacket("ackLeave", toNotify, toFollow);				

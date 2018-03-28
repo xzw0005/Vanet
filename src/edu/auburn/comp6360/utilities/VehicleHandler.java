@@ -10,7 +10,7 @@ import edu.auburn.comp6360.application.Node;
 
 public class VehicleHandler {
 
-	public static final String[] PACKET_TYPES = {"normal", "join", "leave", "ackJoin", "ackLeave"};
+	public static final String[] PACKET_TYPES = {"normal", "join", "leave", "ackJoin", "ackLeave", "notify", "ok", "update"};
 
 	public static Map<String, Integer> initializeSequenceNumbers() {
 		Map<String, Integer> snMap= new HashMap<String, Integer>();

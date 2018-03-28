@@ -2,9 +2,9 @@ package edu.auburn.comp6360.application;
 
 import java.util.Scanner;
 
-import edu.auburn.comp6360.network.Header;
-import edu.auburn.comp6360.network.Packet;
-import edu.auburn.comp6360.network.VehicleInfo;
+//import edu.auburn.comp6360.network.Header;
+//import edu.auburn.comp6360.network.Packet;
+//import edu.auburn.comp6360.network.VehicleInfo;
 import edu.auburn.comp6360.utilities.VehicleHandler;
 
 
@@ -84,23 +84,23 @@ public class FollowingVehicle extends Vehicle {
 	}	
 	
 	
-	public void receivePacket(Packet packetReceived) {
-		Header header = packetReceived.getHeader();
-		int source = header.getSource();
-		int sn = header.getSeqNum();
-		int prevHop = header.getPrevHop();
-		String packetType = header.getPacketType();
-		if (packetType.equals("normal"))  {
-			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
-				VehicleInfo vInfo = packetReceived.getVehicleInfo();
-				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
-				sendPacket(packetReceived, source, sn, prevHop);
-			}
-		} else {		// in the case that of not normal packets
-			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
-				sendPacket(packetReceived, source, sn, prevHop);
-		}
-	}
+//	public void receivePacket(Packet packetReceived) {
+//		Header header = packetReceived.getHeader();
+//		int source = header.getSource();
+//		int sn = header.getSeqNum();
+//		int prevHop = header.getPrevHop();
+//		String packetType = header.getPacketType();
+//		if (packetType.equals("normal"))  {
+//			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
+//				VehicleInfo vInfo = packetReceived.getVehicleInfo();
+//				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
+//				sendPacket(packetReceived, source, sn, prevHop);
+//			}
+//		} else {		// in the case that of not normal packets
+//			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
+//				sendPacket(packetReceived, source, sn, prevHop);
+//		}
+//	}
 	
 	public void processAckJoin(int source, int toFollow) {
 		if (waitingAckJoin) {
@@ -136,39 +136,30 @@ public class FollowingVehicle extends Vehicle {
 				if ((!VehicleHandler.isInRoadTrain(gps)) && (request.equalsIgnoreCase("join"))) {
 					System.out.println("Node " + nodeID +  " is sending JOIN request...");
 					waitingAckJoin = true;
-					while (waitingAckJoin && counter < 3) {
+//					while (waitingAckJoin && counter < 3) {
 						// send JOIN request to the leading truck
 //						Packet joinRequest = initPacket("join", dest, 0);
 //						sendToLead(joinRequest);
 						sendSpecificPacket("join", dest, 0);
 						counter++;
-						try {
-							Thread.sleep(3000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
 						
-					}
+//					}
 				} else if ((VehicleHandler.isInRoadTrain(gps)) && (request.equalsIgnoreCase("leave"))) {
-					System.out.println("Node " + nodeID +  " is sending LEAVE notification...");
+					System.out.println("Node " + nodeID +  " is sending LEAVE message...");
 //					waitingAckLeave = true;
-					while (counter < 3) {
+//					while (counter < 3) {
 						// send LEAVE request to the leading truck
 //						Packet leaveRequest = initPacket("leave", dest, ahead);	
 //						sendToLead(leaveRequest);
 						if (front > 0) {
 							front = 0;
 							frontVinfo = null;
-							gps.setY(0);
+							gps.setY(5);
 							setAcceleration(0);
 						}
 						sendSpecificPacket("leave", dest, 0);
-						try {
-							Thread.sleep(3000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
+
+//					}
 				}
 			}			
 		}

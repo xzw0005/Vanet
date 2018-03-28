@@ -1,2 +1,3 @@
-Node 1 pavilion, 10121 118.5 0.0 links 2
-Node 2 pavilion, 10122 101.9 5.0 links 1
+Node 1 pavilion, 10121 5205.4 0.0 links
+Node 2 pavilion, 10122 2394.7 5.0 links 1 2 3
+Node 3 pavilion, 10123 2519.6 0.0 links 1 3
