@@ -1,7 +1,8 @@
 package edu.auburn.comp6360.application;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
+//import java.util.SortedSet;
+//import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 public class Node {
 
@@ -9,7 +10,7 @@ public class Node {
 	private String hostname;
 	private int port;
 	private double x, y;
-	private SortedSet<Integer> links;
+	private ConcurrentSkipListSet<Integer> links;
 	
 	public Node(int nodeID, String hostName, int portNumber, double xCoord, double yCoord) {
 		this.nodeID = nodeID;
@@ -17,7 +18,7 @@ public class Node {
 		this.port = portNumber;
 		this.x = xCoord; 
 		this.y = yCoord; 
-		this.links = new TreeSet<Integer>();
+		this.links = new ConcurrentSkipListSet<Integer>();
 	}
 	
 	public int getNodeID() {
@@ -49,7 +50,7 @@ public class Node {
 		this.y = gps.getY();
 	}
 
-	synchronized public SortedSet<Integer> getLinks() {
+	synchronized public ConcurrentSkipListSet<Integer> getLinks() {
 		return links;
 	}
 	

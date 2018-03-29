@@ -9,7 +9,7 @@ import java.net.UnknownHostException;
 //import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import java.util.SortedSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 
@@ -40,10 +40,10 @@ public abstract class Vehicle {
 	protected ConcurrentHashMap<String, Integer> snMap;
 	
 	protected int nodeID;	
-	protected Node selfNode; 
+//	protected Node selfNode; 
 //	protected SortedMap<Integer, Node> nodesMap; // from config file
 	protected ConcurrentSkipListMap<Integer, Node> nodesMap;
-	
+	protected ConcurrentSkipListSet<Integer> neighborSet;
 	
 	protected RbaCache cache;
 	protected int front;
@@ -92,10 +92,11 @@ public abstract class Vehicle {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		selfNode = new Node(nodeID, hostName, SERVER_PORT+nodeID, gps.getX(), gps.getY());
+		neighborSet = new ConcurrentSkipListSet<Integer>();
+//		selfNode = new Node(nodeID, hostName, SERVER_PORT+nodeID, gps.getX(), gps.getY());
 //		nodesMap = new TreeMap<Integer, Node>();
 		nodesMap = new ConcurrentSkipListMap<Integer, Node>();
-		nodesMap.put(nodeID, selfNode);
+		nodesMap.put(nodeID, new Node(nodeID, hostName, SERVER_PORT+nodeID, gps.getX(), gps.getY()));
 		cache = new RbaCache();
 		front = 0;
 		frontVinfo = null;
@@ -197,19 +198,21 @@ public abstract class Vehicle {
 	}
 	
 	public void sendPacket(Packet packetToSend, int source, int sn, int prevHop) {
-		SortedSet<Integer> neighbors = selfNode.getLinks();
-		if (neighbors.isEmpty()) 
+//		ConcurrentSkipListSet<Integer> neighbors = selfNode.getLinks();
+		if (neighborSet.isEmpty()) 
 			return;
-		for (int nbID : neighbors) {
+		for (int nbID : neighborSet) {
 			if (nodesMap.get(nbID) != null) {
 				Node nb = nodesMap.get(nbID);
 				if (nbID != prevHop) {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
 					packetToSend.getHeader().setPrevHop(this.nodeID);
-//					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
-//					ct.run();
-					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
+//					System.out.println("Send to: " + nbHostname + ":" + nbPort);
+//					System.out.println("\tPacket: " + packetToSend);
+					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
+					ct.run();
+//					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
 				}
 			}
 		}				
@@ -231,12 +234,13 @@ public abstract class Vehicle {
 		if (packetType.equals("normal"))  {
 			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
 				VehicleInfo vInfo = packetReceived.getVehicleInfo();
-				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());			
+//				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());		
+				neighborSet = VehicleHandler.updateNeighborsFromPacket(neighborSet, gps, source, vInfo.getGPS());
 				sendPacket(packetReceived, source, sn, prevHop);
 				if (front == source) {
 					frontVinfo = vInfo;
 				}
-				if (sn % 100 == 0) {
+				if (sn % 300 == 0) {
 					System.out.println(packetReceived.toString());
 					System.out.println("Node " + nodeID + " is following " + front);
 				}
@@ -373,10 +377,10 @@ public abstract class Vehicle {
 		if (nodesMap == null)
 			return;
 		Packet specialPacket = initPacket(pType, dest, info);
-		System.out.println(specialPacket.toString() + " Destination: Node " + dest);
 		Node destNode = nodesMap.get(dest);
+		System.out.println(specialPacket.toString() + " Destination: Node " + dest);
 		System.out.println(destNode.toString());
-		System.out.println(destNode.getHostname() + ":::::::" + destNode.getPortNumber());
+		System.out.println(destNode.getHostname() + ":" + destNode.getPortNumber());
 		// TODO: Send at most 3 times, but notice that this method is in ServerThread
 		ClientThread tempClient = new ClientThread(destNode.getHostname(), destNode.getPortNumber(), specialPacket);
 		tempClient.run();		
@@ -402,7 +406,6 @@ public abstract class Vehicle {
 					Packet p = initPacket();
 					sendPacket(p, p.getHeader().getSource(), p.getHeader().getSeqNum(), p.getHeader().getPrevHop()); 
 					Thread.sleep(10);
-//					System.out.println("gogo");
 					sensorUpdate();
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -442,11 +445,10 @@ public abstract class Vehicle {
 			ConfigFileHandler config = new ConfigFileHandler(filename);
 			while (true) {
 				try {
-					selfNode.setGPS(gps);
+					Node selfNode = new Node(nodeID, hostName, SERVER_PORT+nodeID, gps.getX(), gps.getY());
+//					selfNode.setGPS(gps);
 					nodesMap = config.writeConfigFile(selfNode);
-					
-//					System.out.println("config");
-					
+					neighborSet = nodesMap.get(nodeID).getLinks();					
 					Thread.sleep(500);
 				} catch (Exception e) {
 					e.printStackTrace();

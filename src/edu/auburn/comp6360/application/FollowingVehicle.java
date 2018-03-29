@@ -16,7 +16,7 @@ public class FollowingVehicle extends Vehicle {
 	public static final double CAR_LENGTH = 5;	
 	public double INIT_Y = 5; // in the Left Lane
 	public double RANDOM_X = Math.random() * 300;
-	public double RANDOM_V = 20 + Math.random() * 10;
+	public double RANDOM_V = 25 + Math.random() * 10;
 	
 
 	private KeyboardListenerThread kt;
@@ -126,12 +126,13 @@ public class FollowingVehicle extends Vehicle {
 //						Packet leaveRequest = initPacket("leave", dest, ahead);	
 //						sendToLead(leaveRequest);
 						if (front > 0) {
+							sendSpecificPacket("leave", dest, front);
 							front = 0;
 							frontVinfo = null;
 							gps.setY(5);
+							setVelocity(25 + Math.random() * 10);
 							setAcceleration(0);
 						}
-						sendSpecificPacket("leave", dest, 0);
 
 //					}
 				}

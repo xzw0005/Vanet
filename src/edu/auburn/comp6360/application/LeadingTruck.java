@@ -76,7 +76,7 @@ public class LeadingTruck extends Vehicle {
 	
 	@Override
 	public void processJoinRequest(int source) {
-		if (waitJoinReply != source)
+		if (waitJoinReply != 0)
 			return;
 		
 		if (!roadTrainList.contains(source)) {

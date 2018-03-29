@@ -1,10 +1,12 @@
 package edu.auburn.comp6360.utilities;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 //import java.util.HashMap;
 //import java.util.Map;
 //import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 import edu.auburn.comp6360.application.GPS;
 import edu.auburn.comp6360.application.Node;
@@ -73,15 +75,18 @@ public class VehicleHandler {
 	}	
 	
 	
-	public static Node updateNeighborsFromPacket(Node selfNode, int otherNodeID, GPS otherGPS) {
+	public static ConcurrentSkipListSet<Integer> updateNeighborsFromPacket(ConcurrentSkipListSet<Integer> neighborSet, GPS selfGPS, int otherNodeID, GPS otherGPS) {
 //		if (!(selfNode.getNodeID() == otherNodeID)) {
-		GPS selfGPS = selfNode.getGPS();
+//		GPS selfGPS = selfNode.getGPS();
 		if (inTransmissionRange(selfGPS, otherGPS)) 
-			selfNode.addLink(otherNodeID);
+			neighborSet.add(otherNodeID);
+//			selfNode.addLink(otherNodeID);
 		else
-			selfNode.removeLink(otherNodeID);			
+			neighborSet.remove(Integer.valueOf(otherNodeID));
+//			selfNode.removeLink(otherNodeID);			
 //		}
-		return selfNode;
+		return neighborSet;
+//		return selfNode;
 	}
 	
 //	public static void updateInfoFromPacket(Node selfNode, SortedMap<Integer, Node> nodesMap, PacketHeader header, VehicleInfo vInfo) {
@@ -93,9 +98,9 @@ public class VehicleHandler {
 	 * Only add neighbor according to the config file, if the link has not been there already.
 	 */
 	public static Node updateNeighborsFromFile(Node selfNode, ConcurrentSkipListMap<Integer, Node> nodesMap) {
-		for (ConcurrentSkipListMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {	
+		for (ConcurrentSkipListMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {
 			int i = entry.getKey();
-			if (i != selfNode.getNodeID()) { //&& (!selfNode.getLinks().contains(i))) {
+			if (i != selfNode.getNodeID()) {
 				if (inTransmissionRange(entry.getValue(), selfNode))
 					selfNode.addLink(i);
 				else
@@ -104,6 +109,21 @@ public class VehicleHandler {
 		}
 		return selfNode;
 	}
+
+//	public static ConcurrentSkipListSet<Integer> updateNeighborsFromFile(int nid, ConcurrentSkipListSet<Integer> neighborSet, ConcurrentSkipListMap<Integer, Node> nodesMap) {
+//		Node selfNode = nodesMap.get(nid);
+//		for (ConcurrentSkipListMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {
+//			int j = entry.getKey();
+//			if (j != nid) {
+//				if (inTransmissionRange(entry.getValue(), selfNode))
+//					neighborSet.add(j);
+//				else
+//					neighborSet.remove(j);
+//			}
+//		}
+//		return neighborSet;	
+//	}
+	
 	
 	public static boolean isInRoadTrain(GPS gps) {
 		return gps.getY() == 0;
