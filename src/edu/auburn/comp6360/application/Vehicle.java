@@ -449,7 +449,7 @@ public abstract class Vehicle {
 		@Override
 		public void run() {
 			while (true) {
-				System.out.println("GOGO BROADCASTING");
+				//System.out.println("GOGO BROADCASTING");
 				Packet packetToSend = initPacket();
 				PacketHandler.broadcastPacket(packetToSend, socket, serverPort);
 				try {

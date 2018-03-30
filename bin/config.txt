@@ -1,0 +1,4 @@
+Node 1 tux050, 10120 8830.6 0.0 links 2 3 4
+Node 2 tux051, 10120 8815.1 0.0 links 1 3 4
+Node 3 tux053, 10120 8869.6 0.0 links 1 2 4
+Node 4 tux052, 10120 8848.1 0.0 links 1 2 3
