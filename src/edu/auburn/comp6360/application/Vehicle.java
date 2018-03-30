@@ -228,8 +228,19 @@ public abstract class Vehicle {
 	 * 		Forward to its neighbors (except previous hop)
 	 */
 	public void receivePacket(Packet packetReceived) {
+		System.out.println(packetReceived.toString());
 		Header header = packetReceived.getHeader();
 		int prevHop = header.getPrevHop();
+		
+//		StringBuffer sb = new StringBuffer();
+//		if (neighborSet.isEmpty())
+//			sb.append("EMPTY!");
+//		else {
+//			for (Integer i : neighborSet)
+//				sb.append(i);
+//		}
+//		System.out.println("Neighbor List: " + sb.toString() + "\tPacket from " + prevHop);
+		
 		if (!(neighborSet.contains(prevHop)) || prevHop==nodeID)
 			return;
 		int source = header.getSource();
@@ -373,6 +384,10 @@ public abstract class Vehicle {
 			return;
 		Packet specialPacket = initPacket(pType, dest, info);
 		Node destNode = nodesMap.get(dest);
+//		for (Integer i : nodesMap.keySet()) {
+//			Node n = nodesMap.get(i);
+//			System.out.println(n);
+//		}
 		System.out.println(specialPacket.toString() + " Destination: Node " + dest);
 		System.out.println(destNode.toString());
 		System.out.println(destNode.getHostname() + ":" + destNode.getPortNumber());
@@ -385,29 +400,30 @@ public abstract class Vehicle {
 	public void startAll() {
 		if (this.SET_BROADCAST == true) {
 			brcst_thread = new BroadcastThread();
-			brcst_thread.run();
 			fwd_thread = new ForwardingThread();
-			fwd_thread.run();
 		} else {
 			send_thread = new SendingThread();
-			send_thread.run();
-		}
-		
-		recv_thread = new ReceivingThread(serverPort);
-		recv_thread.run();
-		
+		}	
+		recv_thread = new ReceivingThread(serverPort);		
 		config_thread = new ConfigThread();
-		config_thread.run();
-
+		
+		if (this.SET_BROADCAST == true) {
+			brcst_thread.start();
+			fwd_thread.start();
+		} else {
+			send_thread.start();
+		}		
+		config_thread.start();
+		recv_thread.run();
 		
 	}
 
-	public class SendingThread implements Runnable {
+	public class SendingThread extends Thread {
 		@Override
 		public void run() {
 			while (true) {
 				try {
-					System.out.println("GOGO SENDING");
+//					System.out.println("GOGO SENDING");
 					Packet p = initPacket();
 					sendPacket(p, nodeID); 
 					Thread.sleep(10);
@@ -421,7 +437,7 @@ public abstract class Vehicle {
 
 	
 	
-	public class BroadcastThread implements Runnable {
+	public class BroadcastThread extends Thread {
 		private DatagramSocket socket;
 
 		public BroadcastThread() {
@@ -449,7 +465,7 @@ public abstract class Vehicle {
 		}
 	}
 	
-	public class ForwardingThread implements Runnable {
+	public class ForwardingThread extends Thread {
 		private DatagramSocket socket;
 		
 		public ForwardingThread() {
@@ -475,14 +491,14 @@ public abstract class Vehicle {
 	}
 	
 	
-	public class ConfigThread implements Runnable {
+	public class ConfigThread extends Thread {
 		@Override
 		public void run() {
 			String filename = "config.txt";
 			ConfigFileHandler config = new ConfigFileHandler(filename);
 			while (true) {
-				System.out.println("GOGO CONFIGUING");
 				try {
+//					System.out.println("GOGO CONFIGUING");
 					Node selfNode = new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY());
 					nodesMap = config.writeConfigFile(selfNode);
 					neighborSet = nodesMap.get(nodeID).getLinks();					
@@ -511,13 +527,13 @@ public abstract class Vehicle {
 				DatagramSocket socket = new DatagramSocket(port);
 				listening = true;
 				while (listening) {
-					System.out.println("GOGO RECEIVING");
 					byte[] packetData = new byte[MAX_PACKET_SIZE];
 					DatagramPacket datagramPacketReceived = new DatagramPacket(packetData, MAX_PACKET_SIZE);
 					try {
 						socket.receive(datagramPacketReceived);
 						packetData = datagramPacketReceived.getData();
 						Packet packetReceived = PacketHandler.packetDessembler(packetData);
+//						System.out.println("GOGO RECEIVING");
 						receivePacket(packetReceived);
 					} catch (IOException e) {
 						e.printStackTrace();

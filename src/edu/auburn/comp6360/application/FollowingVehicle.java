@@ -2,6 +2,11 @@ package edu.auburn.comp6360.application;
 
 import java.util.Scanner;
 
+import edu.auburn.comp6360.application.Vehicle.BroadcastThread;
+import edu.auburn.comp6360.application.Vehicle.ConfigThread;
+import edu.auburn.comp6360.application.Vehicle.ForwardingThread;
+import edu.auburn.comp6360.application.Vehicle.ReceivingThread;
+import edu.auburn.comp6360.application.Vehicle.SendingThread;
 import edu.auburn.comp6360.utilities.VehicleHandler;
 
 
@@ -53,25 +58,24 @@ public class FollowingVehicle extends Vehicle {
 //		super.startAll();
 //		executor.execute(new KeyboardListenerThread());			
 		kt = new KeyboardListenerThread();
-		kt.run();			
-		
 		if (this.SET_BROADCAST == true) {
 			brcst_thread = new BroadcastThread();
-			brcst_thread.run();
+			fwd_thread = new ForwardingThread();
 		} else {
 			send_thread = new SendingThread();
-			send_thread.run();
-		}
-
-		recv_thread = new ReceivingThread(serverPort);
-		recv_thread.run();
-		
-		fwd_thread = new ForwardingThread();
-		fwd_thread.run();
-		
+		}	
+		recv_thread = new ReceivingThread(serverPort);		
 		config_thread = new ConfigThread();
-		config_thread.run();
-
+		
+		kt.start();			
+		if (this.SET_BROADCAST == true) {
+			brcst_thread.start();
+			fwd_thread.start();
+		} else {
+			send_thread.start();
+		}		
+		config_thread.start();
+		recv_thread.run();
 	}
 	
 	@Override
@@ -101,7 +105,7 @@ public class FollowingVehicle extends Vehicle {
 		}
 	}
 		
-	public class KeyboardListenerThread implements Runnable {
+	public class KeyboardListenerThread extends Thread {
 		private Scanner sc;
 
 		@Override
