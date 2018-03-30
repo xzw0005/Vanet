@@ -168,8 +168,6 @@ public abstract class Vehicle {
 	
 	
 	public int inreaseSeqNum(String packetType) {
-		if (this.snMap.get(packetType) == null)
-			System.out.println(packetType);
 		int sn = this.snMap.get(packetType);
 		this.snMap.put(packetType, ++sn);
 		return sn;
@@ -228,7 +226,7 @@ public abstract class Vehicle {
 	 * 		Forward to its neighbors (except previous hop)
 	 */
 	public void receivePacket(Packet packetReceived) {
-		System.out.println(packetReceived.toString());
+//		System.out.println(packetReceived.toString());
 		Header header = packetReceived.getHeader();
 		int prevHop = header.getPrevHop();
 		
@@ -272,7 +270,7 @@ public abstract class Vehicle {
 				sendPacket(packetReceived, prevHop);
 			}
 			else if (header.getDest() == this.nodeID) {
-				System.out.println("Received " + packetType + " message from Node " + source);
+//				System.out.println("Received " + packetType + " message from Node " + source);
 				int info = header.getPiggyback();
 				if (packetType.equals("join"))
 					processJoinRequest(source);
@@ -380,7 +378,7 @@ public abstract class Vehicle {
 	}
 	
 	public void sendSpecificPacket(String pType, int dest, int info) {
-		if (nodesMap == null)
+		if ((nodesMap == null) || (nodesMap.get(dest) == null))
 			return;
 		Packet specialPacket = initPacket(pType, dest, info);
 		Node destNode = nodesMap.get(dest);
@@ -423,7 +421,6 @@ public abstract class Vehicle {
 		public void run() {
 			while (true) {
 				try {
-//					System.out.println("GOGO SENDING");
 					Packet p = initPacket();
 					sendPacket(p, nodeID); 
 					Thread.sleep(10);
@@ -452,7 +449,7 @@ public abstract class Vehicle {
 		@Override
 		public void run() {
 			while (true) {
-//				System.out.println("GOGO BROADCASTING");
+				System.out.println("GOGO BROADCASTING");
 				Packet packetToSend = initPacket();
 				PacketHandler.broadcastPacket(packetToSend, socket, serverPort);
 				try {
@@ -480,7 +477,6 @@ public abstract class Vehicle {
 		@Override
 		public void run() {
 			while (true) {
-				System.out.println("GOGO FORWARDING");
 				if (!forwardQueue.isEmpty()) {
 					Packet packetToForward = forwardQueue.poll();
 					PacketHandler.broadcastPacket(packetToForward, socket, serverPort);
@@ -498,7 +494,6 @@ public abstract class Vehicle {
 			ConfigFileHandler config = new ConfigFileHandler(filename);
 			while (true) {
 				try {
-//					System.out.println("GOGO CONFIGUING");
 					Node selfNode = new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY());
 					nodesMap = config.writeConfigFile(selfNode);
 					neighborSet = nodesMap.get(nodeID).getLinks();					
@@ -533,7 +528,6 @@ public abstract class Vehicle {
 						socket.receive(datagramPacketReceived);
 						packetData = datagramPacketReceived.getData();
 						Packet packetReceived = PacketHandler.packetDessembler(packetData);
-//						System.out.println("GOGO RECEIVING");
 						receivePacket(packetReceived);
 					} catch (IOException e) {
 						e.printStackTrace();
