@@ -1,5 +1,10 @@
 package edu.auburn.comp6360.network;
 
+//import java.io.ByteArrayInputStream;
+//import java.io.ByteArrayOutputStream;
+//import java.io.IOException;
+//import java.io.ObjectInputStream;
+//import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 public class Packet implements Serializable {
@@ -31,6 +36,13 @@ public class Packet implements Serializable {
 		this.vInfo = vInfo;
 	}
 
+	public void setPrevHop(int nid) {
+		this.header.setPrevHop(nid);
+	}
+	
+	public int getPrevHop() {
+		return this.header.getPrevHop();
+	}
 	
 	public Header getHeader() {
 		return this.header;
@@ -43,6 +55,27 @@ public class Packet implements Serializable {
 	public int getPacketSize() {
 		return 4096;
 	}
+	
+//	public Packet forwardCopy(int newPrevHop) {
+//		// Serialization of object
+//		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+//		ObjectOutputStream oos = null;
+//		ObjectInputStream ois = null;
+//		Packet copied = null;
+//		try {
+//			oos = new ObjectOutputStream(bos);
+//			oos.writeObject(this);
+//			//Deserialization of object
+//			byte[] packetBytes = bos.toByteArray();
+//			ByteArrayInputStream bis = new ByteArrayInputStream(packetBytes);
+//			ois = new ObjectInputStream(bis);
+//			copied = (Packet) ois.readObject();
+//			copied.setPrevHop(newPrevHop);
+//		} catch (IOException | ClassNotFoundException e) {
+//			e.printStackTrace();
+//		}
+//		return copied;
+//	}
 	
 	public String toString() {
 		StringBuffer sb = new StringBuffer();

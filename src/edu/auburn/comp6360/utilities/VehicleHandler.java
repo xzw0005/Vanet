@@ -1,6 +1,6 @@
 package edu.auburn.comp6360.utilities;
 
-import java.util.Set;
+//import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 //import java.util.HashMap;
 //import java.util.Map;
@@ -75,18 +75,14 @@ public class VehicleHandler {
 	}	
 	
 	
-	public static ConcurrentSkipListSet<Integer> updateNeighborsFromPacket(ConcurrentSkipListSet<Integer> neighborSet, GPS selfGPS, int otherNodeID, GPS otherGPS) {
-//		if (!(selfNode.getNodeID() == otherNodeID)) {
-//		GPS selfGPS = selfNode.getGPS();
-		if (inTransmissionRange(selfGPS, otherGPS)) 
-			neighborSet.add(otherNodeID);
-//			selfNode.addLink(otherNodeID);
-		else
-			neighborSet.remove(Integer.valueOf(otherNodeID));
-//			selfNode.removeLink(otherNodeID);			
-//		}
+	public static ConcurrentSkipListSet<Integer> updateNeighborsFromPacket(int selfNodeID, GPS selfGPS, ConcurrentSkipListSet<Integer> neighborSet, int otherNodeID, GPS otherGPS) {
+		if (selfNodeID != otherNodeID) {
+			if (inTransmissionRange(selfGPS, otherGPS)) 
+				neighborSet.add(otherNodeID);
+			else
+				neighborSet.remove(Integer.valueOf(otherNodeID));
+		}
 		return neighborSet;
-//		return selfNode;
 	}
 	
 //	public static void updateInfoFromPacket(Node selfNode, SortedMap<Integer, Node> nodesMap, PacketHeader header, VehicleInfo vInfo) {

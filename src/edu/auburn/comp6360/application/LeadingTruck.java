@@ -40,21 +40,21 @@ public class LeadingTruck extends Vehicle {
 		this.setAcceleration(Math.random() * 2 - 1);
 	}
 	
-	@Override	
-	public void startAll() {
-//		super.startAll();
-//		RoadTrainHandlerThread train = new RoadTrainHandlerThread();
-//		train.start();
-		
-		bt = new BroadcastThread();
-		ct = new ConfigThread();
-		st = new ServerThread(SERVER_PORT+nodeID);
-
-		bt.start();
-		ct.start();
-		st.run();
-		
-	}
+//	@Override	
+//	public void startAll() {
+////		super.startAll();
+////		RoadTrainHandlerThread train = new RoadTrainHandlerThread();
+////		train.start();
+//		
+//		send_thread = new SendingThread();
+//		config_thread = new ConfigThread();
+//		recv_thread = new ReceivingThread(serverPort);
+//
+//		send_thread.start();
+//		config_thread.start();
+//		recv_thread.run();
+//		
+//	}
 	
 	/*
 	 * Better be implemented as binary search
@@ -98,7 +98,7 @@ public class LeadingTruck extends Vehicle {
 				waitOK = toNotify;
 			}
 		} else {
-			System.out.println("Already in Road Train, Why Bother me????????????????");
+			System.out.println("Already in Road Train.");
 //			int index = roadTrainList.indexOf(Integer.valueOf(source));
 //			int toFollow = roadTrainList.get(index - 1);
 //			sendSpecificPacket("ackJoin", source, toFollow);			

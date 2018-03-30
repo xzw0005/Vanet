@@ -2,9 +2,6 @@ package edu.auburn.comp6360.application;
 
 import java.util.Scanner;
 
-//import edu.auburn.comp6360.network.Header;
-//import edu.auburn.comp6360.network.Packet;
-//import edu.auburn.comp6360.network.VehicleInfo;
 import edu.auburn.comp6360.utilities.VehicleHandler;
 
 
@@ -54,19 +51,27 @@ public class FollowingVehicle extends Vehicle {
 //	@Override
 	public void startAll() {
 //		super.startAll();
-		
 //		executor.execute(new KeyboardListenerThread());			
 		kt = new KeyboardListenerThread();
+		kt.run();			
 		
-		bt = new BroadcastThread();
-		ct = new ConfigThread();
-		st = new ServerThread(SERVER_PORT+nodeID);
+		if (this.SET_BROADCAST == true) {
+			brcst_thread = new BroadcastThread();
+			brcst_thread.run();
+		} else {
+			send_thread = new SendingThread();
+			send_thread.run();
+		}
 
-		kt.start();		
-		bt.start();
-		ct.start();
-		st.run();
+		recv_thread = new ReceivingThread(serverPort);
+		recv_thread.run();
 		
+		fwd_thread = new ForwardingThread();
+		fwd_thread.run();
+		
+		config_thread = new ConfigThread();
+		config_thread.run();
+
 	}
 	
 	@Override
@@ -96,7 +101,7 @@ public class FollowingVehicle extends Vehicle {
 		}
 	}
 		
-	public class KeyboardListenerThread extends Thread {
+	public class KeyboardListenerThread implements Runnable {
 		private Scanner sc;
 
 		@Override
@@ -106,7 +111,7 @@ public class FollowingVehicle extends Vehicle {
 				System.out.println("Keyboard Thread Listening...");
 				sc = new Scanner(System.in);
 				String request = sc.next();
-				int counter = 0;
+//				int counter = 0;
 				if ((!VehicleHandler.isInRoadTrain(gps)) && (request.equalsIgnoreCase("join"))) {
 					System.out.println("Node " + nodeID +  " is sending JOIN request...");
 					waitJoinReply = 1;
@@ -115,7 +120,7 @@ public class FollowingVehicle extends Vehicle {
 //						Packet joinRequest = initPacket("join", dest, 0);
 //						sendToLead(joinRequest);
 						sendSpecificPacket("join", dest, 0);
-						counter++;
+//						counter++;
 						
 //					}
 				} else if ((VehicleHandler.isInRoadTrain(gps)) && (request.equalsIgnoreCase("leave"))) {
@@ -123,10 +128,8 @@ public class FollowingVehicle extends Vehicle {
 //					waitingAckLeave = true;
 //					while (counter < 3) {
 						// send LEAVE request to the leading truck
-//						Packet leaveRequest = initPacket("leave", dest, ahead);	
-//						sendToLead(leaveRequest);
+						sendSpecificPacket("leave", dest, front);
 						if (front > 0) {
-							sendSpecificPacket("leave", dest, front);
 							front = 0;
 							frontVinfo = null;
 							gps.setY(5);

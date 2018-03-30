@@ -6,9 +6,9 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-//import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
@@ -25,7 +25,7 @@ public abstract class Vehicle {
 	
 	public static final String FILENAME = "config.txt";
 	public static final int SERVER_PORT = 10120;
-	
+	protected boolean SET_BROADCAST;
 	
 	protected double length;
 	protected double width;
@@ -36,14 +36,14 @@ public abstract class Vehicle {
 	protected long timeStamp;	
 	
 	protected String hostName;
+	protected int serverPort;
 //	protected int packetSeqNum;
 	protected ConcurrentHashMap<String, Integer> snMap;
 	
 	protected int nodeID;	
-//	protected Node selfNode; 
-//	protected SortedMap<Integer, Node> nodesMap; // from config file
-	protected ConcurrentSkipListMap<Integer, Node> nodesMap;
+	protected ConcurrentSkipListMap<Integer, Node> nodesMap;	// from config file
 	protected ConcurrentSkipListSet<Integer> neighborSet;
+	protected ConcurrentLinkedQueue<Packet> forwardQueue;
 	
 	protected RbaCache cache;
 	protected int front;
@@ -61,24 +61,25 @@ public abstract class Vehicle {
 	
 	protected ExecutorService executor;
 
-	protected BroadcastThread bt;
-	protected ConfigThread ct;
-	protected ServerThread st;
+	protected SendingThread send_thread;
+	protected ConfigThread config_thread;
+	protected ReceivingThread recv_thread;
+	protected ForwardingThread fwd_thread;
+	protected BroadcastThread brcst_thread;
 	
-	
-	public Vehicle() {
-		
-		gps = new GPS();
-		timeStamp = System.currentTimeMillis();
-		snMap = VehicleHandler.initializeSequenceNumbers();
-		try {
-			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
-			if (hostName.indexOf(".") > -1)
-				hostName = hostName.substring(0, hostName.indexOf("."));
-		} catch (UnknownHostException e) {			
-			e.printStackTrace();
-		}
-	}
+//	public Vehicle() {
+//		
+//		gps = new GPS();
+//		timeStamp = System.currentTimeMillis();
+//		snMap = VehicleHandler.initializeSequenceNumbers();
+//		try {
+//			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
+//			if (hostName.indexOf(".") > -1)
+//				hostName = hostName.substring(0, hostName.indexOf("."));
+//		} catch (UnknownHostException e) {			
+//			e.printStackTrace();
+//		}
+//	}
 	
 	public Vehicle(int nodeId) {
 		nodeID = nodeId;
@@ -89,14 +90,22 @@ public abstract class Vehicle {
 			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
 			if (hostName.indexOf(".") > -1)
 				hostName = hostName.substring(0, hostName.indexOf("."));
+			if (hostName.substring(0, 3).equals("tux"))
+				this.SET_BROADCAST = true;
+			else
+				this.SET_BROADCAST = false;
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
+		if (SET_BROADCAST == true)
+			serverPort = SERVER_PORT;
+		else
+			serverPort = SERVER_PORT + nodeID;
+		
+		forwardQueue = new ConcurrentLinkedQueue<Packet>();
 		neighborSet = new ConcurrentSkipListSet<Integer>();
-//		selfNode = new Node(nodeID, hostName, SERVER_PORT+nodeID, gps.getX(), gps.getY());
-//		nodesMap = new TreeMap<Integer, Node>();
 		nodesMap = new ConcurrentSkipListMap<Integer, Node>();
-		nodesMap.put(nodeID, new Node(nodeID, hostName, SERVER_PORT+nodeID, gps.getX(), gps.getY()));
+		nodesMap.put(nodeID, new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY()));
 		cache = new RbaCache();
 		front = 0;
 		frontVinfo = null;
@@ -110,12 +119,7 @@ public abstract class Vehicle {
 	
 	public void setWidth(double width) {
 		this.width = width;
-	}
-	
-//	public void setAddr(byte[] localAddr) {
-//		this.address = localAddr;
-//	}
-	
+	}	
 	
 	public void setGPS(GPS newGps) {
 		this.gps.setX(newGps.getX());
@@ -197,8 +201,7 @@ public abstract class Vehicle {
 		return initPacket("normal", -1, -1);
 	}
 	
-	public void sendPacket(Packet packetToSend, int source, int sn, int prevHop) {
-//		ConcurrentSkipListSet<Integer> neighbors = selfNode.getLinks();
+	public void sendPacket(Packet packetToSend, int prevHop) {
 		if (neighborSet.isEmpty()) 
 			return;
 		for (int nbID : neighborSet) {
@@ -207,7 +210,6 @@ public abstract class Vehicle {
 				if (nbID != prevHop) {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
-					packetToSend.getHeader().setPrevHop(this.nodeID);
 //					System.out.println("Send to: " + nbHostname + ":" + nbPort);
 //					System.out.println("\tPacket: " + packetToSend);
 					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
@@ -227,16 +229,23 @@ public abstract class Vehicle {
 	 */
 	public void receivePacket(Packet packetReceived) {
 		Header header = packetReceived.getHeader();
+		int prevHop = header.getPrevHop();
+		if (!(neighborSet.contains(prevHop)) || prevHop==nodeID)
+			return;
 		int source = header.getSource();
 		int sn = header.getSeqNum();
-		int prevHop = header.getPrevHop();
 		String packetType = header.getPacketType();
 		if (packetType.equals("normal"))  {
 			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
 				VehicleInfo vInfo = packetReceived.getVehicleInfo();
-//				selfNode = VehicleHandler.updateNeighborsFromPacket(selfNode, source, vInfo.getGPS());		
-				neighborSet = VehicleHandler.updateNeighborsFromPacket(neighborSet, gps, source, vInfo.getGPS());
-				sendPacket(packetReceived, source, sn, prevHop);
+				
+				neighborSet = VehicleHandler.updateNeighborsFromPacket(nodeID, gps, neighborSet, source, vInfo.getGPS());
+				Packet packetToForward = PacketHandler.forwardCopy(packetReceived, nodeID);
+				if (SET_BROADCAST)
+					forwardQueue.add(packetToForward);
+				else
+					sendPacket(packetToForward, prevHop);
+				
 				if (front == source) {
 					frontVinfo = vInfo;
 				}
@@ -247,8 +256,10 @@ public abstract class Vehicle {
 				
 			}
 		} else {		// in the case that of not normal packets
-			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) )
-				sendPacket(packetReceived, source, sn, prevHop);
+			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) ) {
+				packetReceived.setPrevHop(nodeID);
+				sendPacket(packetReceived, prevHop);
+			}
 			else if (header.getDest() == this.nodeID) {
 				System.out.println("Received " + packetType + " message from Node " + source);
 				int info = header.getPiggyback();
@@ -295,24 +306,53 @@ public abstract class Vehicle {
 	
 	
 	public void followAhead() {
-		if (gps.getX() >= 4000 && gps.getX() <= 5000) {
-			if (frontVinfo.getVelocity() > 20) {
-				setVelocity(20);
+		if (letCarIn > 0) {		// 
+			if (frontVinfo.getX() - gps.getX() >= 30) {
+				setVelocity(frontVinfo.getVelocity() + 5);	// increase speed to catch up
 				setAcceleration(0);
-			}else {
+			} else if (frontVinfo.getX() - gps.getX() <= 20) {
+				setVelocity(frontVinfo.getVelocity() - 5);	// decrease speed to slow down
+				setAcceleration(0);
+			} else {
 				setVelocity(frontVinfo.getVelocity());
-				setAcceleration(frontVinfo.getAcceleration());	
-			}
-		} else if (frontVinfo.getX() - gps.getX() >= 20) {
-			setVelocity(frontVinfo.getVelocity() + 5);	// increase speed to catch up
-			setAcceleration(0);
-		} else if (frontVinfo.getX() - gps.getX() <= 10) {
-			setVelocity(frontVinfo.getVelocity() - 5);	// decrease speed to slow down
-			setAcceleration(0);
+				setAcceleration(frontVinfo.getAcceleration());
+				sendSpecificPacket("ok", 1, letCarIn);
+				waitOK = 1;
+				letCarIn = 0;
+			}				
 		} else {
-			setVelocity(frontVinfo.getVelocity());
-			setAcceleration(frontVinfo.getAcceleration());				
+			if (frontVinfo.getX() - gps.getX() >= 20) {
+				setVelocity(frontVinfo.getVelocity() + 5);	// increase speed to catch up
+				setAcceleration(0);
+			} else if (frontVinfo.getX() - gps.getX() <= 10) {
+				setVelocity(frontVinfo.getVelocity() - 5);	// decrease speed to slow down
+				setAcceleration(0);
+			} else {
+				setVelocity(frontVinfo.getVelocity());
+				setAcceleration(frontVinfo.getAcceleration()); 
+				if (gps.getY() != 0) {		// in the case of not in road train
+					sendSpecificPacket("ackJoin", 1, front);
+					gps.setY(0); 	// merge to the right lane, & join the road train						
+				}
+			}				
 		}
+		
+		if (gps.getX() >= 4000 && gps.getX() <= 5000) {
+			if (frontVinfo.getVelocity() > 26) {
+				setVelocity(20);
+				setAcceleration();
+			}		
+		}
+	}
+	
+	public void driveSelf(double dt) {
+		if (gps.getX() >= 4000 && gps.getX() <= 5000)
+			setVelocity(20);
+		else if ((gps.getX() > 5000) && (velocity < 21))
+			setVelocity(30);
+		else
+			setVelocity(VehicleHandler.computeVelocity(velocity, acceleration, dt));
+		setAcceleration();	
 	}
 	
 
@@ -322,55 +362,10 @@ public abstract class Vehicle {
 		this.timeStamp = currentTime;
 //		System.out.println(dt);
 		setGPS(VehicleHandler.computeGPS(gps, velocity, acceleration, dt));
-		
-		if (gps.getX() >= 4000 && gps.getX() <= 5000) {
-			if (frontVinfo != null && frontVinfo.getVelocity() <= 20) {
-				setVelocity(frontVinfo.getVelocity());
-				setAcceleration(frontVinfo.getAcceleration());
-			} else {
-				setVelocity(20);
-				setAcceleration(0);
-			}
-		} else if (frontVinfo != null) {
-			
-			if (letCarIn > 0) {		// 
-				if (frontVinfo.getX() - gps.getX() >= 30) {
-					setVelocity(frontVinfo.getVelocity() + 5);	// increase speed to catch up
-					setAcceleration(0);
-				} else if (frontVinfo.getX() - gps.getX() <= 20) {
-					setVelocity(frontVinfo.getVelocity() - 5);	// decrease speed to slow down
-					setAcceleration(0);
-				} else {
-					setVelocity(frontVinfo.getVelocity());
-					setAcceleration(frontVinfo.getAcceleration());
-					sendSpecificPacket("ok", 1, letCarIn);
-					waitOK = 1;
-					letCarIn = 0;
-				}				
-			} else {
-				if (frontVinfo.getX() - gps.getX() >= 20) {
-					setVelocity(frontVinfo.getVelocity() + 5);	// increase speed to catch up
-					setAcceleration(0);
-				} else if (frontVinfo.getX() - gps.getX() <= 10) {
-					setVelocity(frontVinfo.getVelocity() - 5);	// decrease speed to slow down
-					setAcceleration(0);
-				} else {
-					setVelocity(frontVinfo.getVelocity());
-					setAcceleration(frontVinfo.getAcceleration()); 
-					if (gps.getY() != 0) {		// in the case of not in roadtrain
-						sendSpecificPacket("ackJoin", 1, front);
-						gps.setY(0); 	// merge to the right lane, & join the road train						
-					}
-				}				
-			}
-		} else {
-			if ((gps.getX() > 5000) && (velocity < 21))
-				setVelocity(30);
-			else
-				setVelocity(VehicleHandler.computeVelocity(velocity, acceleration, dt));
-			setAcceleration();			
-		}
-		
+		if (frontVinfo != null)
+			followAhead();
+		else
+			driveSelf(dt);
 	}
 	
 	public void sendSpecificPacket(String pType, int dest, int info) {
@@ -388,27 +383,91 @@ public abstract class Vehicle {
 
 	
 	public void startAll() {
-		bt = new BroadcastThread();
-		ct = new ConfigThread();
-		st = new ServerThread(SERVER_PORT+nodeID);
+		if (this.SET_BROADCAST == true) {
+			brcst_thread = new BroadcastThread();
+			brcst_thread.run();
+			fwd_thread = new ForwardingThread();
+			fwd_thread.run();
+		} else {
+			send_thread = new SendingThread();
+			send_thread.run();
+		}
+		
+		recv_thread = new ReceivingThread(serverPort);
+		recv_thread.run();
+		
+		config_thread = new ConfigThread();
+		config_thread.run();
 
-		bt.start();
-		ct.start();
-		st.run();
+		
 	}
 
-	public class BroadcastThread extends Thread {
-		
+	public class SendingThread implements Runnable {
 		@Override
 		public void run() {
 			while (true) {
 				try {
+					System.out.println("GOGO SENDING");
 					Packet p = initPacket();
-					sendPacket(p, p.getHeader().getSource(), p.getHeader().getSeqNum(), p.getHeader().getPrevHop()); 
+					sendPacket(p, nodeID); 
 					Thread.sleep(10);
 					sensorUpdate();
 				} catch (Exception e) {
 					e.printStackTrace();
+				}
+			}
+		}		
+	}
+
+	
+	
+	public class BroadcastThread implements Runnable {
+		private DatagramSocket socket;
+
+		public BroadcastThread() {
+			try {
+				socket = new DatagramSocket();
+				socket.setBroadcast(true);
+			} catch (SocketException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		@Override
+		public void run() {
+			while (true) {
+//				System.out.println("GOGO BROADCASTING");
+				Packet packetToSend = initPacket();
+				PacketHandler.broadcastPacket(packetToSend, socket, serverPort);
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				sensorUpdate();			
+			}
+		}
+	}
+	
+	public class ForwardingThread implements Runnable {
+		private DatagramSocket socket;
+		
+		public ForwardingThread() {
+			try {
+				socket = new DatagramSocket();
+				socket.setBroadcast(true);
+			} catch (SocketException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		@Override
+		public void run() {
+			while (true) {
+				System.out.println("GOGO FORWARDING");
+				if (!forwardQueue.isEmpty()) {
+					Packet packetToForward = forwardQueue.poll();
+					PacketHandler.broadcastPacket(packetToForward, socket, serverPort);
 				}
 			}
 		}
@@ -416,37 +475,15 @@ public abstract class Vehicle {
 	}
 	
 	
-	public class BroadcastClient implements Runnable {
-		public static final String BROADCAST_ADDRESS = "131.204.14.255";
-		@Override
-		public void run() {
-			try {
-				DatagramSocket socket = new DatagramSocket();
-				socket.setBroadcast(true);
-				Packet packetToSend = initPacket();
-				byte[] buffer = PacketHandler.packetAssembler(packetToSend);
-				InetAddress addr = InetAddress.getByName(BROADCAST_ADDRESS);
-				DatagramPacket packet = new DatagramPacket(buffer, buffer.length, addr, SERVER_PORT);
-				socket.send(packet);
-				socket.close();
-			} catch (SocketException | UnknownHostException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	
-	public class ConfigThread extends Thread {
+	public class ConfigThread implements Runnable {
 		@Override
 		public void run() {
 			String filename = "config.txt";
 			ConfigFileHandler config = new ConfigFileHandler(filename);
 			while (true) {
+				System.out.println("GOGO CONFIGUING");
 				try {
-					Node selfNode = new Node(nodeID, hostName, SERVER_PORT+nodeID, gps.getX(), gps.getY());
-//					selfNode.setGPS(gps);
+					Node selfNode = new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY());
 					nodesMap = config.writeConfigFile(selfNode);
 					neighborSet = nodesMap.get(nodeID).getLinks();					
 					Thread.sleep(500);
@@ -458,12 +495,12 @@ public abstract class Vehicle {
 	}
 	
 	
-	public class ServerThread implements Runnable {
+	public class ReceivingThread implements Runnable {
 		public final int MAX_PACKET_SIZE = 4096;
 		private int port;
 		private boolean listening;
 		
-		public ServerThread(int port) {
+		public ReceivingThread(int port) {
 			this.port = port;
 			this.listening = false;
 		}
@@ -474,6 +511,7 @@ public abstract class Vehicle {
 				DatagramSocket socket = new DatagramSocket(port);
 				listening = true;
 				while (listening) {
+					System.out.println("GOGO RECEIVING");
 					byte[] packetData = new byte[MAX_PACKET_SIZE];
 					DatagramPacket datagramPacketReceived = new DatagramPacket(packetData, MAX_PACKET_SIZE);
 					try {
@@ -481,7 +519,6 @@ public abstract class Vehicle {
 						packetData = datagramPacketReceived.getData();
 						Packet packetReceived = PacketHandler.packetDessembler(packetData);
 						receivePacket(packetReceived);
-//						System.out.println("@@" + packetReceived.toString());
 					} catch (IOException e) {
 						e.printStackTrace();
 						stopListening();
@@ -498,7 +535,5 @@ public abstract class Vehicle {
 		}
 	}
 
-	
-	
 	
 }
