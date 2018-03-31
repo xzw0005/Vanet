@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 import edu.auburn.comp6360.application.Node;
 import edu.auburn.comp6360.application.RbaCache.CacheContent;
@@ -13,8 +14,9 @@ public class UnitTests {
 
 	public static void main(String[] args) throws UnknownHostException {
 
-		int i = 0;
-		System.out.println(String.valueOf(i));
+		ConcurrentSkipListSet<Integer> set = new ConcurrentSkipListSet<Integer>();
+		set.add(3);
+		System.out.println(set.remove(Integer.valueOf(2)));
 		
 		
 //		SubC s = new SubC();

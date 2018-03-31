@@ -239,38 +239,42 @@ public abstract class Vehicle {
 //		}
 //		System.out.println("Neighbor List: " + sb.toString() + "\tPacket from " + prevHop);
 		
-		if (!(neighborSet.contains(prevHop)) || prevHop==nodeID)
-			return;
 		int source = header.getSource();
 		int sn = header.getSeqNum();
 		String packetType = header.getPacketType();
 		if (packetType.equals("normal"))  {
-			if (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) {
-				VehicleInfo vInfo = packetReceived.getVehicleInfo();
-				
-				neighborSet = VehicleHandler.updateNeighborsFromPacket(nodeID, gps, neighborSet, source, vInfo.getGPS());
-				Packet packetToForward = PacketHandler.forwardCopy(packetReceived, nodeID);
-				if (SET_BROADCAST)
-					forwardQueue.add(packetToForward);
-				else
-					sendPacket(packetToForward, prevHop);
-				
-				if (front == source) {
-					frontVinfo = vInfo;
-				}
-				if (sn % 300 == 0) {
-					System.out.println(packetReceived.toString());
-					System.out.println("Node " + nodeID + " is following " + front);
-				}
-				
+			if (!(neighborSet.contains(prevHop)) || prevHop==nodeID)
+				return;
+			if (sn % 300 == 0) {
+				System.out.println("Received packet " + packetReceived.toString());
+				System.out.println("Node " + nodeID + " is following " + front);
 			}
+			if (!cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) 
+				return;
+
+			VehicleInfo vInfo = packetReceived.getVehicleInfo();
+			if (front == source) {
+				frontVinfo = vInfo;
+			}
+			
+			neighborSet = VehicleHandler.updateNeighborsFromPacket(nodeID, gps, neighborSet, source, vInfo.getGPS());
+			forwardQueue.add(packetReceived);
+			
+//			Packet packetToForward = PacketHandler.forwardCopy(packetReceived, nodeID);		// This is slow!!!
+//			packetReceived.setPrevHop(nodeID);
+//			if (SET_BROADCAST)
+//				forwardQueue.add(packetReceived);
+//			else
+//				sendPacket(packetReceived, prevHop);
+				
+			
 		} else {		// in the case that of not normal packets
 			if ( (header.getDest() != this.nodeID) && (cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) ) {
 				packetReceived.setPrevHop(nodeID);
 				sendPacket(packetReceived, prevHop);
 			}
 			else if (header.getDest() == this.nodeID) {
-//				System.out.println("Received " + packetType + " message from Node " + source);
+				System.out.println("\nReceived " + packetType + " message from Node " + source + ".\n");
 				int info = header.getPiggyback();
 				if (packetType.equals("join"))
 					processJoinRequest(source);
@@ -386,9 +390,9 @@ public abstract class Vehicle {
 //			Node n = nodesMap.get(i);
 //			System.out.println(n);
 //		}
-		System.out.println(specialPacket.toString() + " Destination: Node " + dest);
-		System.out.println(destNode.toString());
-		System.out.println(destNode.getHostname() + ":" + destNode.getPortNumber());
+//		System.out.println(specialPacket.toString() + " Destination: Node " + dest);
+//		System.out.println(destNode.toString());
+//		System.out.println(destNode.getHostname() + ":" + destNode.getPortNumber());
 		// TODO: Send at most 3 times, but notice that this method is in ServerThread
 		ClientThread tempClient = new ClientThread(destNode.getHostname(), destNode.getPortNumber(), specialPacket);
 		tempClient.run();		
@@ -398,19 +402,19 @@ public abstract class Vehicle {
 	public void startAll() {
 		if (this.SET_BROADCAST == true) {
 			brcst_thread = new BroadcastThread();
-			fwd_thread = new ForwardingThread();
 		} else {
 			send_thread = new SendingThread();
 		}	
+		fwd_thread = new ForwardingThread();
 		recv_thread = new ReceivingThread(serverPort);		
 		config_thread = new ConfigThread();
 		
 		if (this.SET_BROADCAST == true) {
 			brcst_thread.start();
-			fwd_thread.start();
 		} else {
 			send_thread.start();
 		}		
+		fwd_thread.start();
 		config_thread.start();
 		recv_thread.run();
 		
@@ -466,11 +470,13 @@ public abstract class Vehicle {
 		private DatagramSocket socket;
 		
 		public ForwardingThread() {
-			try {
-				socket = new DatagramSocket();
-				socket.setBroadcast(true);
-			} catch (SocketException e) {
-				e.printStackTrace();
+			if (SET_BROADCAST == true) {
+				try {
+					socket = new DatagramSocket();
+					socket.setBroadcast(true);
+				} catch (SocketException e) {
+					e.printStackTrace();
+				}				
 			}
 		}
 		
@@ -479,7 +485,13 @@ public abstract class Vehicle {
 			while (true) {
 				if (!forwardQueue.isEmpty()) {
 					Packet packetToForward = forwardQueue.poll();
-					PacketHandler.broadcastPacket(packetToForward, socket, serverPort);
+					int prevHop = packetToForward.getPrevHop();
+					packetToForward.setPrevHop(nodeID);
+					if (SET_BROADCAST == true) {
+						PacketHandler.broadcastPacket(packetToForward, socket, serverPort);						
+					} else {
+						sendPacket(packetToForward, prevHop);						
+					}
 				}
 			}
 		}
@@ -496,7 +508,7 @@ public abstract class Vehicle {
 				try {
 					Node selfNode = new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY());
 					nodesMap = config.writeConfigFile(selfNode);
-					neighborSet = nodesMap.get(nodeID).getLinks();					
+					neighborSet = nodesMap.get(nodeID).getLinks();		
 					Thread.sleep(500);
 				} catch (Exception e) {
 					e.printStackTrace();

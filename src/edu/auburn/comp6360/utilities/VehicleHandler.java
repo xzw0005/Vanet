@@ -85,11 +85,6 @@ public class VehicleHandler {
 		return neighborSet;
 	}
 	
-//	public static void updateInfoFromPacket(Node selfNode, SortedMap<Integer, Node> nodesMap, PacketHeader header, VehicleInfo vInfo) {
-//		
-//	}
-	
-	
 	/*
 	 * Only add neighbor according to the config file, if the link has not been there already.
 	 */
@@ -105,21 +100,6 @@ public class VehicleHandler {
 		}
 		return selfNode;
 	}
-
-//	public static ConcurrentSkipListSet<Integer> updateNeighborsFromFile(int nid, ConcurrentSkipListSet<Integer> neighborSet, ConcurrentSkipListMap<Integer, Node> nodesMap) {
-//		Node selfNode = nodesMap.get(nid);
-//		for (ConcurrentSkipListMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {
-//			int j = entry.getKey();
-//			if (j != nid) {
-//				if (inTransmissionRange(entry.getValue(), selfNode))
-//					neighborSet.add(j);
-//				else
-//					neighborSet.remove(j);
-//			}
-//		}
-//		return neighborSet;	
-//	}
-	
 	
 	public static boolean isInRoadTrain(GPS gps) {
 		return gps.getY() == 0;
