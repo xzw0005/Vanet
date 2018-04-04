@@ -261,11 +261,15 @@ public abstract class Vehicle {
 			if (!(neighborSet.contains(prevHop)) || prevHop==nodeID)
 				return;
 			
-			if (VehicleHandler.ifPacketLoss(this.gps, nodesMap.get(prevHop).getGPS())) {
-				++this.numPacketLost;
-				return;
+			try {
+				if (VehicleHandler.ifPacketLoss(this.gps, nodesMap.get(prevHop).getGPS())) {
+					++this.numPacketLost;
+					return;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-			++this.numPacketReceived;
+			++this.numPacketReceived;				
 			
 			// Received packet originated from itself, used to compute latency
 			if ((source == nodeID) && (packetReceived.increasePathLength() == 1))  { 
