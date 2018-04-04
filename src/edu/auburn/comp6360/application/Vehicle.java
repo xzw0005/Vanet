@@ -454,7 +454,7 @@ public abstract class Vehicle {
 	
 	public void writeCalculationResults() {
 		long running_time = System.currentTimeMillis() - this.initialTime;
-		if (running_time >= .5 * 60 * 1000) {
+		if (running_time >= 3 * 60 * 1000) {
 			String fname = "result_" + this.nodeID + ".txt";
 			try {
 				PrintWriter pw = new PrintWriter(fname);
