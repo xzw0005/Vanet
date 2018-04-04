@@ -73,7 +73,7 @@ public abstract class Vehicle {
 	protected int numPacketReceived;
 	protected int numPacketLost;
 	protected int numLatencyRecord;
-	protected long avgLatency;
+	protected double avgLatency;
 	
 //	public Vehicle() {
 //		
@@ -454,14 +454,14 @@ public abstract class Vehicle {
 	
 	public void writeCalculationResults() {
 		long running_time = System.currentTimeMillis() - this.initialTime;
-		if (running_time >= 3 * 60 * 1000) {
+		if (running_time >= .5 * 60 * 1000) {
 			String fname = "result_" + this.nodeID + ".txt";
 			try {
 				PrintWriter pw = new PrintWriter(fname);
 				pw.println("Running Time: " + running_time);
 				pw.println("Total Number of Packets should be received by this vehicle: " + this.numPacketReceived);
 				pw.println("Number of lost packets: " + this.numPacketLost);
-				pw.println("Average latency = " + this.avgLatency + "\t calculated upon " + this.numLatencyRecord + "packets.");
+				pw.println("Average latency = " + this.avgLatency + "\t calculated upon " + this.numLatencyRecord + " packets.");
 				pw.close();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
