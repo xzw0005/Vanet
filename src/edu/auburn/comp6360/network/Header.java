@@ -17,6 +17,8 @@ public class Header implements Serializable {
 	private int dest;
 	private int piggyback;
 	
+	private int pathLength;
+	
 	public Header(String type, int source, int sn, int prevHop) {
 		this.packetType = type;
 		this.source = source;
@@ -24,6 +26,7 @@ public class Header implements Serializable {
 		this.prevHop = prevHop;
 		this.dest = -1;
 		this.piggyback = -1;
+		this.pathLength = 0;
 	}
 
 	public Header(String type, int source, int sn, int prevHop, int dest, int extraInfo) {
@@ -33,6 +36,7 @@ public class Header implements Serializable {
 		this.prevHop = prevHop;
 		this.dest = dest;
 		this.piggyback = extraInfo;
+		this.pathLength = 0;
 	}
 	
 	public int getSeqNum() {
@@ -69,6 +73,10 @@ public class Header implements Serializable {
 	
 	public void setPiggyback(int extraInfo) {
 		this.piggyback = extraInfo;
+	}
+	
+	public int increasePathLength() {
+		return this.pathLength++;
 	}
 	
 //	public void setPacketType(int type) {

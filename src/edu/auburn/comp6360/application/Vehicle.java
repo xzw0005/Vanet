@@ -1,6 +1,8 @@
 package edu.auburn.comp6360.application;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -67,6 +69,12 @@ public abstract class Vehicle {
 	protected ForwardingThread fwd_thread;
 	protected BroadcastThread brcst_thread;
 	
+	protected long initialTime;
+	protected int numPacketReceived;
+	protected int numPacketLost;
+	protected int numLatencyRecord;
+	protected long avgLatency;
+	
 //	public Vehicle() {
 //		
 //		gps = new GPS();
@@ -111,6 +119,13 @@ public abstract class Vehicle {
 		frontVinfo = null;
 		letCarIn = 0;
 		pType = "normal";
+
+		initialTime = timeStamp;
+		numPacketReceived = 0;
+		numPacketLost = 0;
+		numLatencyRecord = 0;
+		avgLatency = 0;
+	
 	}
 	
 	public void setLength(double length) {
@@ -245,6 +260,22 @@ public abstract class Vehicle {
 		if (packetType.equals("normal"))  {
 			if (!(neighborSet.contains(prevHop)) || prevHop==nodeID)
 				return;
+			
+			if (VehicleHandler.ifPacketLoss(this.gps, nodesMap.get(prevHop).getGPS())) {
+				++this.numPacketLost;
+				return;
+			}
+			++this.numPacketReceived;
+			
+			// Received packet originated from itself, used to compute latency
+			if ((source == nodeID) && (packetReceived.increasePathLength() == 1))  { 
+				long packetInitTime = this.timeStamp - (this.snMap.get(packetType) - sn) * 10;
+				long latency = System.currentTimeMillis() - packetInitTime;
+				this.avgLatency = (avgLatency * numLatencyRecord + latency) / (numLatencyRecord + 1);
+				this.numLatencyRecord++;
+				return;
+			}
+			
 			if (sn % 300 == 0) {
 				System.out.println("Received packet " + packetReceived.toString());
 				System.out.println("Node " + nodeID + " is following " + front);
@@ -258,6 +289,7 @@ public abstract class Vehicle {
 			}
 			
 			neighborSet = VehicleHandler.updateNeighborsFromPacket(nodeID, gps, neighborSet, source, vInfo.getGPS());
+			packetReceived.increasePathLength();
 			forwardQueue.add(packetReceived);
 			
 //			Packet packetToForward = PacketHandler.forwardCopy(packetReceived, nodeID);		// This is slow!!!
@@ -417,8 +449,27 @@ public abstract class Vehicle {
 		fwd_thread.start();
 		config_thread.start();
 		recv_thread.run();
-		
+				
 	}
+	
+	public void writeCalculationResults() {
+		long running_time = System.currentTimeMillis() - this.initialTime;
+		if (running_time >= 3 * 60 * 1000) {
+			String fname = "result_" + this.nodeID + ".txt";
+			try {
+				PrintWriter pw = new PrintWriter(fname);
+				pw.println("Running Time: " + running_time);
+				pw.println("Total Number of Packets should be received by this vehicle: " + this.numPacketReceived);
+				pw.println("Number of lost packets: " + this.numPacketLost);
+				pw.println("Average latency = " + this.avgLatency + "\t calculated upon " + this.numLatencyRecord + "packets.");
+				pw.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+			
+		}
+	}
+	
 
 	public class SendingThread extends Thread {
 		@Override
@@ -510,6 +561,8 @@ public abstract class Vehicle {
 					nodesMap = config.writeConfigFile(selfNode);
 					neighborSet = nodesMap.get(nodeID).getLinks();		
 					Thread.sleep(500);
+					writeCalculationResults();
+					
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

@@ -43,6 +43,10 @@ public class VehicleHandler {
 	    	return true;
 	    return false;
 	}
+	
+	public static boolean ifPacketLoss(GPS gps1, GPS gps2) {
+		return ifPacketLoss(computeDistance(gps1, gps2));
+	}
 
 	public static boolean ifPacketLoss(Node n1, Node n2) {
 		return ifPacketLoss(computeDistance(n1, n2));

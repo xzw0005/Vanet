@@ -56,6 +56,10 @@ public class Packet implements Serializable {
 		return 4096;
 	}
 	
+	public int increasePathLength() {
+		return this.header.increasePathLength();
+	}
+	
 //	public Packet forwardCopy(int newPrevHop) {
 //		// Serialization of object
 //		ByteArrayOutputStream bos = new ByteArrayOutputStream();

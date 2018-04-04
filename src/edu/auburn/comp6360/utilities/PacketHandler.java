@@ -26,6 +26,7 @@ public class PacketHandler {
 			oos.writeObject((Object)packet);
 			oos.flush();
 			packetData = bos.toByteArray();
+//			System.out.println("PACKET ASSEMBLER: size = " + packetData.length);
 			oos.close();
 			bos.close();
 		} catch (IOException e) {
@@ -35,6 +36,8 @@ public class PacketHandler {
 	}
 	
 	public static Packet packetDessembler(byte[] packetData) {
+//		System.out.println("PACKET DESSEMBLER: size = " + packetData.length);
+		
 		ByteArrayInputStream bis = null;
 		ObjectInputStream ois = null;
 		Object packetObject = null;

@@ -1,12 +1,9 @@
 package edu.auburn.comp6360.application;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.Scanner;
 
-import edu.auburn.comp6360.application.Vehicle.BroadcastThread;
-import edu.auburn.comp6360.application.Vehicle.ConfigThread;
-import edu.auburn.comp6360.application.Vehicle.ForwardingThread;
-import edu.auburn.comp6360.application.Vehicle.ReceivingThread;
-import edu.auburn.comp6360.application.Vehicle.SendingThread;
 import edu.auburn.comp6360.utilities.VehicleHandler;
 
 
@@ -147,6 +144,24 @@ public class FollowingVehicle extends Vehicle {
 		}
 	}
 	
+	@Override
+	public void writeCalculationResults() {
+		long running_time = System.currentTimeMillis() - this.initialTime;
+		if (running_time >= 2.5 * 60 * 1000) {
+			String fname = "result_" + this.nodeID + ".txt";
+			try {
+				PrintWriter pw = new PrintWriter(fname);
+				pw.println("Running Time: " + running_time);
+				pw.println("Total Number of Packets should be received by this vehicle: " + this.numPacketReceived);
+				pw.println("Number of lost packets: " + this.numPacketLost);
+				pw.println("Average latency = " + this.avgLatency + "\t calculated upon " + this.numLatencyRecord + "packets.");
+				pw.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+			
+		}
+	}
 	
 	
 }
