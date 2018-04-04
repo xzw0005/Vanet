@@ -276,10 +276,10 @@ public abstract class Vehicle {
 				return;
 			}
 			
-			if (sn % 300 == 0) {
-				System.out.println("Received packet " + packetReceived.toString());
-				System.out.println("Node " + nodeID + " is following " + front);
-			}
+//			if (sn % 300 == 0) {
+//				System.out.println("Received packet " + packetReceived.toString());
+//				System.out.println("Node " + nodeID + " is following " + front);
+//			}
 			if (!cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) 
 				return;
 
