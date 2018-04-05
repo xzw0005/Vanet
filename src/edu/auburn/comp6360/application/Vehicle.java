@@ -261,29 +261,32 @@ public abstract class Vehicle {
 			if (!(neighborSet.contains(prevHop)) || prevHop==nodeID)
 				return;
 			
-			try {
-				if (VehicleHandler.ifPacketLoss(this.gps, nodesMap.get(prevHop).getGPS())) {
-					++this.numPacketLost;
-					return;
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			++this.numPacketReceived;				
-			
-			// Received packet originated from itself, used to compute latency
-			if ((source == nodeID) && (packetReceived.increasePathLength() == 1))  { 
-				long packetInitTime = this.timeStamp - (this.snMap.get(packetType) - sn) * 10;
-				long latency = System.currentTimeMillis() - packetInitTime;
-				this.avgLatency = (avgLatency * numLatencyRecord + latency) / (numLatencyRecord + 1);
-				this.numLatencyRecord++;
-				return;
-			}
-			
-//			if (sn % 300 == 0) {
-//				System.out.println("Received packet " + packetReceived.toString());
-//				System.out.println("Node " + nodeID + " is following " + front);
+//			try {
+//				if (VehicleHandler.ifPacketLoss(this.gps, nodesMap.get(prevHop).getGPS())) {
+//					++this.numPacketLost;
+//					return;
+//				}
+//			} catch (Exception e) {
+//				e.printStackTrace();
 //			}
+//			++this.numPacketReceived;				
+//			
+//			// Received packet originated from itself, used to compute latency
+//			if ((source == nodeID) && (packetReceived.increasePathLength() == 1))  { 
+//				long packetInitTime = this.timeStamp - (this.snMap.get(packetType) - sn) * 10;
+//				long latency = System.currentTimeMillis() - packetInitTime;
+//				this.avgLatency = (avgLatency * numLatencyRecord + latency) / (numLatencyRecord + 1);
+//				this.numLatencyRecord++;
+//				return;
+//			}
+			
+			if ((source == nodeID) || (prevHop == nodeID))
+				return;
+			
+			if (sn % 300 == 0) {
+				System.out.println("Received packet " + packetReceived.toString());
+				System.out.println("Node " + nodeID + " is following " + front);
+			}
 			if (!cache.updatePacketSeqNum(source, packetType, sn, getNodeID())) 
 				return;
 
@@ -565,7 +568,7 @@ public abstract class Vehicle {
 					nodesMap = config.writeConfigFile(selfNode);
 					neighborSet = nodesMap.get(nodeID).getLinks();		
 					Thread.sleep(500);
-					writeCalculationResults();
+//					writeCalculationResults();
 					
 				} catch (Exception e) {
 					e.printStackTrace();
