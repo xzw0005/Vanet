@@ -42,18 +42,23 @@ public class ConfigFileHandler {
 //			//line = "Node 1 pavilion, 10121 34.6 0.0 links"
 			String[] lineArray = line.split(" ");
 			if (lineArray.length >= 7) {
-				int nodeID = Integer.parseInt(lineArray[1]);
-				String host = lineArray[2].trim();
-				host = host.substring(0, host.indexOf(","));
-				int port = Integer.parseInt(lineArray[3]);
-				double x = Double.parseDouble(lineArray[4]);
-				double y = Double.parseDouble(lineArray[5]);
-				Node node = new Node(nodeID, host, port, x, y);
-				if (lineArray.length > 7) {
-					for (int i = 7; i < lineArray.length; i++) 
-						node.addLink(Integer.parseInt(lineArray[i]));				
+				try {
+					int nodeID = Integer.parseInt(lineArray[1]);
+					String host = lineArray[2].trim();
+						
+					host = host.substring(0, host.indexOf(","));
+					int port = Integer.parseInt(lineArray[3]);
+					double x = Double.parseDouble(lineArray[4]);
+					double y = Double.parseDouble(lineArray[5]);
+					Node node = new Node(nodeID, host, port, x, y);
+					if (lineArray.length > 7) {
+						for (int i = 7; i < lineArray.length; i++) 
+							node.addLink(Integer.parseInt(lineArray[i]));				
+					}
+					nodesMap.put(nodeID, node);
+				} catch (Exception e) {
+					System.err.println("...");
 				}
-				nodesMap.put(nodeID, node);
 			}						
 		}
 			

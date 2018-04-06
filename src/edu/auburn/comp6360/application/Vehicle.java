@@ -592,7 +592,7 @@ public abstract class Vehicle {
 		public void run() {
 			try {
 				DatagramSocket socket = new DatagramSocket(port);
-				listening = true;
+		listening = true;
 				while (listening) {
 					byte[] packetData = new byte[MAX_PACKET_SIZE];
 					DatagramPacket datagramPacketReceived = new DatagramPacket(packetData, MAX_PACKET_SIZE);
