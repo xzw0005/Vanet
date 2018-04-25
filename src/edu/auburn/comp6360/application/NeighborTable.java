@@ -1,6 +1,7 @@
 package edu.auburn.comp6360.application;
 
-//import java.util.TreeSet;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -9,11 +10,13 @@ public class NeighborTable {
 	private int neighborhoodSequenceNumber;
 	private ConcurrentSkipListMap<Integer, String> oneHopNeighbors;
 	private ConcurrentSkipListMap<Integer, ConcurrentSkipListSet<Integer>> twoHopNeighbors;
+	private HashMap<Integer, Integer> twoHopNeighborsThroughMPR;
 	
 	public NeighborTable() {
 		this.neighborhoodSequenceNumber = 0;
 		this.oneHopNeighbors = new ConcurrentSkipListMap<Integer, String>();
 		this.twoHopNeighbors = new ConcurrentSkipListMap<Integer, ConcurrentSkipListSet<Integer>>();
+		this.twoHopNeighborsThroughMPR = new HashMap<Integer, Integer>();
 	}
 
 	public ConcurrentSkipListMap<Integer, String> getOneHopNeighbors() {
@@ -77,10 +80,14 @@ public class NeighborTable {
 	
 	public void updateTwoHopNeighbors(int source, ConcurrentSkipListMap<Integer, String> neighborsOfSource) {
 		boolean updated = false;
-		for (int nb2 : this.twoHopNeighbors.keySet()) {
-			
+		for (int twoHopNb : twoHopNeighbors.keySet()) {
+			if (twoHopNeighbors.get(twoHopNb).contains(source)) {
+				if ((!neighborsOfSource.containsKey(twoHopNb)) || (neighborsOfSource.get(twoHopNb).equalsIgnoreCase("UNI"))) {
+					twoHopNeighbors.get(twoHopNb).remove(Integer.valueOf(source));
+					updated = true;
+				}
+			}
 		}
-		
 		for (int nid : neighborsOfSource.keySet()) {
 			if (neighborsOfSource.get(nid).equalsIgnoreCase("BI") || neighborsOfSource.get(nid).equalsIgnoreCase("MPR")) {
 				ConcurrentSkipListSet<Integer> accessThroughSet = new ConcurrentSkipListSet<Integer>();
@@ -89,8 +96,42 @@ public class NeighborTable {
 				boolean added = accessThroughSet.add(source);
 				if (added)
 					updated = true;
+				twoHopNeighbors.put(nid, accessThroughSet);
 			}
 		}
+		ArrayList<Integer> toRemove = new ArrayList<Integer>();
+		for (int twoHopNb : twoHopNeighbors.keySet()) {
+			if (twoHopNeighbors.get(twoHopNb).size() == 0) 
+				toRemove.add(twoHopNb);
+		}
+		for (int i : toRemove)
+			twoHopNeighbors.remove(i);
+		if (updated) 
+			updateMPRs();
 	}
+	
+	
+	public void updateMPRs() {
+		
+		
+		
+		return;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 }
