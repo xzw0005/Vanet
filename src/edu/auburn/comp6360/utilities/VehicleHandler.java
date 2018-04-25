@@ -78,7 +78,6 @@ public class VehicleHandler {
 		return computeDistance(gps1, gps2) <= 100;
 	}	
 	
-	
 	public static ConcurrentSkipListSet<Integer> updateNeighborsFromPacket(int selfNodeID, GPS selfGPS, ConcurrentSkipListSet<Integer> neighborSet, int otherNodeID, GPS otherGPS) {
 		if (selfNodeID != otherNodeID) {
 			if (inTransmissionRange(selfGPS, otherGPS)) 

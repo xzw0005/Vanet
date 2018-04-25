@@ -272,14 +272,23 @@ public abstract class Vehicle {
 		boolean isTwoHopNeighbor = this.nbTab.isTwoHopNeighbor(source);
 		if (isOneHopNeighbor) {
 			String linkStatus = nbTab.getLinkStatus(source);
-			if (linkStatus.equals("uni")) {
+			if (linkStatus.equalsIgnoreCase("bi") || linkStatus.equalsIgnoreCase("mpr")) {
+				// TODO: UPDATE HOLDING TIME
+				;
+			} else if (linkStatus.equals("uni")) {
 				ConcurrentSkipListMap<Integer, String> neighborsOfSource = hello.getOneHopNeighbors();
 				if (neighborsOfSource.containsKey(this.nodeID)) {
 					nbTab.setLinkStatus(source, "bi");
 					updateMPR();
 				}
-			} // OTHERWISE (linkStatus.equalsIgnoreCase("bi") || linkStatus.equalsIgnoreCase("mpr")) DO NOTHING
-		} 
+			}
+		} else {	// if (!isOneHopNeighbor)
+			nbTab.setLinkStatus(source, "uni");
+//			if (isTwoHopNeighbor) {
+//				nbTab.removeTwoHopNeighbor(source);
+//			}
+		}
+		
 	}
 	
 	public void receivePacket(Packet packetReceived) {
