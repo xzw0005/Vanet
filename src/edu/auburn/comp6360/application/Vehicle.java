@@ -259,6 +259,31 @@ public abstract class Vehicle {
 		return;
 	}
 	
+	public void processHello(int source, HelloMessage hello) {
+		boolean isOneHopNeighbor = this.nbTab.isOneHopNeighbor(source);
+		boolean isTwoHopNeighbor = this.nbTab.isTwoHopNeighbor(source);
+		if (isOneHopNeighbor) {
+			String linkStatus = nbTab.getLinkStatus(source);
+			if (linkStatus.equalsIgnoreCase("BI") || linkStatus.equalsIgnoreCase("MPR")) {
+				// TODO: UPDATE HOLDING TIME
+				;
+			} else if (linkStatus.equals("UNI")) {
+				ConcurrentSkipListMap<Integer, String> neighborsOfSource = hello.getOneHopNeighbors();
+				if (neighborsOfSource.containsKey(this.nodeID)) {
+					nbTab.setLinkStatus(source, "BI");
+					updateMPR();
+				}
+			}
+		} else {	// if (!isOneHopNeighbor)
+			nbTab.setLinkStatus(source, "UNI");
+//			if (isTwoHopNeighbor) {
+//				nbTab.removeTwoHopNeighbor(source);
+//			}
+		}
+		
+	}
+
+	
 	/*
 	 * Upon received packet:
 	 * 		Update the sequence number and broadcast number in cache
@@ -267,29 +292,6 @@ public abstract class Vehicle {
 	 * 		Forward to its neighbors (except previous hop)
 	 */
 	
-	public void processHello(int source, HelloMessage hello) {
-		boolean isOneHopNeighbor = this.nbTab.isOneHopNeighbor(source);
-		boolean isTwoHopNeighbor = this.nbTab.isTwoHopNeighbor(source);
-		if (isOneHopNeighbor) {
-			String linkStatus = nbTab.getLinkStatus(source);
-			if (linkStatus.equalsIgnoreCase("bi") || linkStatus.equalsIgnoreCase("mpr")) {
-				// TODO: UPDATE HOLDING TIME
-				;
-			} else if (linkStatus.equals("uni")) {
-				ConcurrentSkipListMap<Integer, String> neighborsOfSource = hello.getOneHopNeighbors();
-				if (neighborsOfSource.containsKey(this.nodeID)) {
-					nbTab.setLinkStatus(source, "bi");
-					updateMPR();
-				}
-			}
-		} else {	// if (!isOneHopNeighbor)
-			nbTab.setLinkStatus(source, "uni");
-//			if (isTwoHopNeighbor) {
-//				nbTab.removeTwoHopNeighbor(source);
-//			}
-		}
-		
-	}
 	
 	public void receivePacket(Packet packetReceived) {
 //		System.out.println(packetReceived.toString());
@@ -303,14 +305,6 @@ public abstract class Vehicle {
 			processHello(source, hello);
 			return;
 		}
-//		StringBuffer sb = new StringBuffer();
-//		if (neighborSet.isEmpty())
-//			sb.append("EMPTY!");
-//		else {
-//			for (Integer i : neighborSet)
-//				sb.append(i);
-//		}
-//		System.out.println("Neighbor List: " + sb.toString() + "\tPacket from " + prevHop);
 		
 		int prevHop = header.getPrevHop();
 		int sn = header.getSeqNum();
@@ -352,7 +346,7 @@ public abstract class Vehicle {
 				frontVinfo = vInfo;
 			}
 			
-			neighborSet = VehicleHandler.updateNeighborsFromPacket(nodeID, gps, neighborSet, source, vInfo.getGPS());
+//			neighborSet = VehicleHandler.updateNeighborsFromPacket(nodeID, gps, neighborSet, source, vInfo.getGPS());
 			packetReceived.increasePathLength();
 			forwardQueue.add(packetReceived);
 			

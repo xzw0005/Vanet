@@ -53,6 +53,16 @@ public class NeighborTable {
 		return selfMPRs;
 	}
 	
+	public ConcurrentSkipListSet<Integer> getBiLinks(ConcurrentSkipListMap<Integer, String> neighbors) {
+		ConcurrentSkipListSet<Integer> biLinks = new ConcurrentSkipListSet<Integer>();
+		for (int nid : neighbors.keySet()) {
+			if (neighbors.get(nid).equalsIgnoreCase("BI"))
+				biLinks.add(nid);
+		}
+		return biLinks;
+	}
+	 
+	
 	public boolean isOneHopNeighbor(int source) {
 		return oneHopNeighbors.containsKey(source);
 	}
@@ -66,12 +76,19 @@ public class NeighborTable {
 	}
 	
 	public void updateTwoHopNeighbors(int source, ConcurrentSkipListMap<Integer, String> neighborsOfSource) {
+		boolean updated = false;
+		for (int nb2 : this.twoHopNeighbors.keySet()) {
+			
+		}
+		
 		for (int nid : neighborsOfSource.keySet()) {
 			if (neighborsOfSource.get(nid).equalsIgnoreCase("BI") || neighborsOfSource.get(nid).equalsIgnoreCase("MPR")) {
 				ConcurrentSkipListSet<Integer> accessThroughSet = new ConcurrentSkipListSet<Integer>();
 				if (twoHopNeighbors.containsKey(nid))
 					accessThroughSet = twoHopNeighbors.get(nid);
-				accessThroughSet.add(source);
+				boolean added = accessThroughSet.add(source);
+				if (added)
+					updated = true;
 			}
 		}
 	}

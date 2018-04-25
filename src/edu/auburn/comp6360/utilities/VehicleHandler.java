@@ -78,31 +78,31 @@ public class VehicleHandler {
 		return computeDistance(gps1, gps2) <= 100;
 	}	
 	
-	public static ConcurrentSkipListSet<Integer> updateNeighborsFromPacket(int selfNodeID, GPS selfGPS, ConcurrentSkipListSet<Integer> neighborSet, int otherNodeID, GPS otherGPS) {
-		if (selfNodeID != otherNodeID) {
-			if (inTransmissionRange(selfGPS, otherGPS)) 
-				neighborSet.add(otherNodeID);
-			else
-				neighborSet.remove(Integer.valueOf(otherNodeID));
-		}
-		return neighborSet;
-	}
-	
-	/*
-	 * Only add neighbor according to the config file, if the link has not been there already.
-	 */
-	public static Node updateNeighborsFromFile(Node selfNode, ConcurrentSkipListMap<Integer, Node> nodesMap) {
-		for (ConcurrentSkipListMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {
-			int i = entry.getKey();
-			if (i != selfNode.getNodeID()) {
-				if (inTransmissionRange(entry.getValue(), selfNode))
-					selfNode.addLink(i);
-				else
-					selfNode.removeLink(i);
-			}
-		}
-		return selfNode;
-	}
+//	public static ConcurrentSkipListSet<Integer> updateNeighborsFromPacket(int selfNodeID, GPS selfGPS, ConcurrentSkipListSet<Integer> neighborSet, int otherNodeID, GPS otherGPS) {
+//		if (selfNodeID != otherNodeID) {
+//			if (inTransmissionRange(selfGPS, otherGPS)) 
+//				neighborSet.add(otherNodeID);
+//			else
+//				neighborSet.remove(Integer.valueOf(otherNodeID));
+//		}
+//		return neighborSet;
+//	}
+//	
+//	/*
+//	 * Only add neighbor according to the config file, if the link has not been there already.
+//	 */
+//	public static Node updateNeighborsFromFile(Node selfNode, ConcurrentSkipListMap<Integer, Node> nodesMap) {
+//		for (ConcurrentSkipListMap.Entry<Integer, Node> entry: nodesMap.entrySet()) {
+//			int i = entry.getKey();
+//			if (i != selfNode.getNodeID()) {
+//				if (inTransmissionRange(entry.getValue(), selfNode))
+//					selfNode.addLink(i);
+//				else
+//					selfNode.removeLink(i);
+//			}
+//		}
+//		return selfNode;
+//	}
 	
 	public static boolean isInRoadTrain(GPS gps) {
 		return gps.getY() == 0;

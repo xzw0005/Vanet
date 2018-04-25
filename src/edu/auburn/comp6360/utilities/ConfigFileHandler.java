@@ -13,7 +13,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import edu.auburn.comp6360.application.Node;
-import edu.auburn.comp6360.utilities.VehicleHandler;
 
 public class ConfigFileHandler {
 	
@@ -67,7 +66,7 @@ public class ConfigFileHandler {
 	
 	public ConcurrentSkipListMap<Integer, Node> writeConfigFile(Node updatedNode) {
 		ConcurrentSkipListMap<Integer, Node> nodesMap = readConfigFile();
-		updatedNode = VehicleHandler.updateNeighborsFromFile(updatedNode, nodesMap);
+//		updatedNode = VehicleHandler.updateNeighborsFromFile(updatedNode, nodesMap);
 		nodesMap.put(updatedNode.getNodeID(), updatedNode);
 		try {
 			PrintWriter pw = new PrintWriter(filename);
