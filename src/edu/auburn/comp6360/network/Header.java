@@ -12,28 +12,30 @@ public class Header implements Serializable {
 	private int seqNum;
 	private int source;
 	private int prevHop;
-	
-	private String packetType; // "NORMAL", "JOIN", "LEAVE", "ACKJOIN", "ACKLEAVE"
+	private double prevX;
+	private String packetType; // "NORMAL", "JOIN", "LEAVE", "ACKJOIN", "ACKLEAVE"; "HELLO", "TC"
 	private int dest;
 	private int piggyback;
 	
 	private int pathLength;
 	
-	public Header(String type, int source, int sn, int prevHop) {
+	public Header(String type, int source, int sn, int prevHop, double prevX) {
 		this.packetType = type;
 		this.source = source;
 		this.seqNum = sn;		
 		this.prevHop = prevHop;
+		this.prevX = prevX;
 		this.dest = -1;
 		this.piggyback = -1;
 		this.pathLength = 0;
 	}
 
-	public Header(String type, int source, int sn, int prevHop, int dest, int extraInfo) {
+	public Header(String type, int source, int sn, int prevHop, double prevX, int dest, int extraInfo) {
 		this.packetType = type;
 		this.source = source;
 		this.seqNum = sn;		
 		this.prevHop = prevHop;
+		this.prevX = prevX;
 		this.dest = dest;
 		this.piggyback = extraInfo;
 		this.pathLength = 0;
@@ -77,6 +79,10 @@ public class Header implements Serializable {
 	
 	public int increasePathLength() {
 		return this.pathLength++;
+	}
+	
+	public boolean inTransmissionRange(double xCoord) {
+		return Math.abs(xCoord - prevX) < 100;
 	}
 	
 //	public void setPacketType(int type) {

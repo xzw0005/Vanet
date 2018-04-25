@@ -63,10 +63,10 @@ public class LeadingTruck extends Vehicle {
 		int trainLen = roadTrainList.size();
 		if (trainLen == 1)
 			return nodeID;
-		double toJoinX = nodesMap.get(toJoin).getX();
+		double toJoinX = nodesTopology.get(toJoin).getX();
 		int toFollow = roadTrainList.getLast();
 		for (int i = trainLen - 2; i >= 0; i--) {
-			if (nodesMap.get(toFollow).getX() > toJoinX)
+			if (nodesTopology.get(toFollow).getX() > toJoinX)
 				return toFollow;
 			else
 				toFollow = roadTrainList.get(i);				

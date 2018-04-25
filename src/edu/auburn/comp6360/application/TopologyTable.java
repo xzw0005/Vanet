@@ -18,8 +18,7 @@ public class TopologyTable {
 		return topologyMap.get(nid).getDestMPRs();
 	}
 	
-	public void updateTopologyTable(int nid, TCMessage tc) {
-		int tcSn = tc.getTcSeqNum();
+	public void updateTopologyTable(int nid, int tcSn, TCMessage tc) {
 		ConcurrentSkipListSet<Integer> tcMPRs = tc.getMPRs();
 		TTcontent entry = new TTcontent(tcSn, tcMPRs);
 		if ((topologyMap.get(nid) == null) || (tcSn > entry.getTTsn()))

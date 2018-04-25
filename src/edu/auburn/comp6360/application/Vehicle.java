@@ -17,8 +17,10 @@ import java.util.concurrent.ExecutorService;
 
 import edu.auburn.comp6360.network.ClientThread;
 import edu.auburn.comp6360.network.Packet;
+import edu.auburn.comp6360.network.TCMessage;
 import edu.auburn.comp6360.network.VehicleInfo;
 import edu.auburn.comp6360.network.Header;
+import edu.auburn.comp6360.network.HelloMessage;
 import edu.auburn.comp6360.utilities.ConfigFileHandler;
 import edu.auburn.comp6360.utilities.PacketHandler;
 import edu.auburn.comp6360.utilities.VehicleHandler;
@@ -39,17 +41,22 @@ public abstract class Vehicle {
 	
 	protected String hostName;
 	protected int serverPort;
-//	protected int packetSeqNum;
-	protected ConcurrentHashMap<String, Integer> snMap;
+	protected int packetSequenceNumber;
+	protected int topologySequenceNumber;
+//	protected int helloSeqNum;	// Hello messages don't need sequence number!
+//	protected ConcurrentHashMap<String, Integer> snMap;
 	
-	protected int nodeID;	
-	protected ConcurrentSkipListMap<Integer, Node> nodesMap;	// from config file
+	protected int nodeID;
+	protected ConcurrentSkipListMap<Integer, Node> nodesTopology;	// from config file
 	protected ConcurrentSkipListSet<Integer> neighborSet;
 	protected ConcurrentLinkedQueue<Packet> forwardQueue;
 	
 	protected RbaCache cache;
 	protected int front;
 	protected VehicleInfo frontVinfo;
+	
+	protected NeighborTable nbTab;
+	protected TopologyTable tpTab;
 	
 	// States for Sending & Receiving packet types
 	protected String pType;
@@ -93,7 +100,9 @@ public abstract class Vehicle {
 		nodeID = nodeId;
 		gps = new GPS();
 		timeStamp = System.currentTimeMillis();
-		snMap = VehicleHandler.initializeSequenceNumbers();
+//		snMap = VehicleHandler.initializeSequenceNumbers();
+		packetSequenceNumber = 0;
+		topologySequenceNumber = 0;
 		try {
 			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
 			if (hostName.indexOf(".") > -1)
@@ -112,8 +121,8 @@ public abstract class Vehicle {
 		
 		forwardQueue = new ConcurrentLinkedQueue<Packet>();
 		neighborSet = new ConcurrentSkipListSet<Integer>();
-		nodesMap = new ConcurrentSkipListMap<Integer, Node>();
-		nodesMap.put(nodeID, new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY()));
+		nodesTopology = new ConcurrentSkipListMap<Integer, Node>();
+		nodesTopology.put(nodeID, new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY()));
 		cache = new RbaCache();
 		front = 0;
 		frontVinfo = null;
@@ -182,18 +191,25 @@ public abstract class Vehicle {
 	}
 	
 	
+//	public int inreaseSeqNum(String packetType) {
+//		int sn = this.snMap.get(packetType);
+//		this.snMap.put(packetType, ++sn);
+//		return sn;
+//	}
 	public int inreaseSeqNum(String packetType) {
-		int sn = this.snMap.get(packetType);
-		this.snMap.put(packetType, ++sn);
-		return sn;
-	}
-	
+		if (packetType.equalsIgnoreCase("normal")) 
+			return ++packetSequenceNumber;
+		else if (packetType.equalsIgnoreCase("tc"))
+			return ++topologySequenceNumber;
+		return 0;
+	}	
 	
 	public Packet initPacket(String type, int dest, int extraInfo) {
 		int sn = this.inreaseSeqNum(type);
 		int source = this.nodeID;
 		int prevHop = this.nodeID;
-		Header header = new Header(type, source, sn, prevHop);
+		double prevX = this.getGPS().getX();
+		Header header = new Header(type, source, sn, prevHop, prevX);
 		if (!type.equals("normal")) {
 			header.setDest(dest);
 			header.setPiggyback(extraInfo);
@@ -202,6 +218,12 @@ public abstract class Vehicle {
 		if (type.equals("normal")) {
 			VehicleInfo vInfo = new VehicleInfo(gps, velocity, acceleration);
 			packetToSend.setVehicleInfo(vInfo);
+		} else if (type.equals("hello")) {
+			HelloMessage hello = new HelloMessage(nbTab.getOneHopNeighbors());
+			packetToSend.setHello(hello);
+		} else if (type.equals("tc")) {
+			TCMessage tc = new TCMessage(nbTab.getMPRs());
+			packetToSend.setTc(tc);
 		}
 		this.cache.updatePacketSeqNum(source, type, sn, getNodeID());
 //		sendPacket(packetToSend, source, sn, prevHop);
@@ -218,8 +240,8 @@ public abstract class Vehicle {
 		if (neighborSet.isEmpty()) 
 			return;
 		for (int nbID : neighborSet) {
-			if (nodesMap.get(nbID) != null) {
-				Node nb = nodesMap.get(nbID);
+			if (nodesTopology.get(nbID) != null) {
+				Node nb = nodesTopology.get(nbID);
 				if (nbID != prevHop) {
 					String nbHostname = nb.getHostname();
 					int nbPort = nb.getPortNumber();
@@ -233,6 +255,10 @@ public abstract class Vehicle {
 		}				
 	}
 	
+	public void updateMPR() {
+		return;
+	}
+	
 	/*
 	 * Upon received packet:
 	 * 		Update the sequence number and broadcast number in cache
@@ -240,11 +266,34 @@ public abstract class Vehicle {
 	 * 		
 	 * 		Forward to its neighbors (except previous hop)
 	 */
+	
+	public void processHello(int source, HelloMessage hello) {
+		boolean isOneHopNeighbor = this.nbTab.isOneHopNeighbor(source);
+		boolean isTwoHopNeighbor = this.nbTab.isTwoHopNeighbor(source);
+		if (isOneHopNeighbor) {
+			String linkStatus = nbTab.getLinkStatus(source);
+			if (linkStatus.equals("uni")) {
+				ConcurrentSkipListMap<Integer, String> neighborsOfSource = hello.getOneHopNeighbors();
+				if (neighborsOfSource.containsKey(this.nodeID)) {
+					nbTab.setLinkStatus(source, "bi");
+					updateMPR();
+				}
+			} // OTHERWISE (linkStatus.equalsIgnoreCase("bi") || linkStatus.equalsIgnoreCase("mpr")) DO NOTHING
+		} 
+	}
+	
 	public void receivePacket(Packet packetReceived) {
 //		System.out.println(packetReceived.toString());
 		Header header = packetReceived.getHeader();
-		int prevHop = header.getPrevHop();
-		
+		int source = header.getSource();
+		if (!header.inTransmissionRange(this.getGPS().getX()))
+			return;
+		String packetType = header.getPacketType();
+		if (packetType.equals("hello")) {
+			HelloMessage hello = packetReceived.getHello();
+			processHello(source, hello);
+			return;
+		}
 //		StringBuffer sb = new StringBuffer();
 //		if (neighborSet.isEmpty())
 //			sb.append("EMPTY!");
@@ -254,9 +303,8 @@ public abstract class Vehicle {
 //		}
 //		System.out.println("Neighbor List: " + sb.toString() + "\tPacket from " + prevHop);
 		
-		int source = header.getSource();
+		int prevHop = header.getPrevHop();
 		int sn = header.getSeqNum();
-		String packetType = header.getPacketType();
 		if (packetType.equals("normal"))  {
 			if (!(neighborSet.contains(prevHop)) || prevHop==nodeID)
 				return;
@@ -421,10 +469,10 @@ public abstract class Vehicle {
 	}
 	
 	public void sendSpecificPacket(String pType, int dest, int info) {
-		if ((nodesMap == null) || (nodesMap.get(dest) == null))
+		if ((nodesTopology == null) || (nodesTopology.get(dest) == null))
 			return;
 		Packet specialPacket = initPacket(pType, dest, info);
-		Node destNode = nodesMap.get(dest);
+		Node destNode = nodesTopology.get(dest);
 //		for (Integer i : nodesMap.keySet()) {
 //			Node n = nodesMap.get(i);
 //			System.out.println(n);
@@ -565,9 +613,9 @@ public abstract class Vehicle {
 			while (true) {
 				try {
 					Node selfNode = new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY());
-					nodesMap = config.writeConfigFile(selfNode);
-					neighborSet = nodesMap.get(nodeID).getLinks();		
-					Thread.sleep(500);
+					nodesTopology = config.writeConfigFile(selfNode);
+					neighborSet = nodesTopology.get(nodeID).getLinks();		
+					Thread.sleep(5000);
 //					writeCalculationResults();
 					
 				} catch (Exception e) {
