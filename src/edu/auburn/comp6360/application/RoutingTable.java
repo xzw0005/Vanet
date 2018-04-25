@@ -10,6 +10,9 @@ public class RoutingTable {
 		routingMap = new ConcurrentSkipListMap<Integer, RtEntry>();
 	}
 	
+	public void updateRoutingTable() {
+		
+	}
 	
 	
 	public class RtEntry {

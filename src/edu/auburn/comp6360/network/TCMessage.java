@@ -9,22 +9,22 @@ public class TCMessage implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = -8257502186256118705L;
-	private ConcurrentSkipListSet<Integer> MPRs;
+	private ConcurrentSkipListSet<Integer> mprSelectorTable;
 	
 	public TCMessage() {
-		this.MPRs = new ConcurrentSkipListSet<Integer>();
+		this.mprSelectorTable = new ConcurrentSkipListSet<Integer>();
 	}
 		
-	public TCMessage(ConcurrentSkipListSet<Integer> MPRs) {
-		this.MPRs = MPRs;
+	public TCMessage(ConcurrentSkipListSet<Integer> mprSelectors) {
+		this.mprSelectorTable = mprSelectors;
 	}	
 	
-	public void setMPRs(ConcurrentSkipListSet<Integer> MPRs) {
-		this.MPRs = MPRs;
+	public void setMPRs(ConcurrentSkipListSet<Integer> mprSelectors) {
+		this.mprSelectorTable = mprSelectors;
 	}
 	
-	public ConcurrentSkipListSet<Integer> getMPRs() {
-		return MPRs;
+	public ConcurrentSkipListSet<Integer> getMprSelectorTable() {
+		return mprSelectorTable;
 	}
 
 }

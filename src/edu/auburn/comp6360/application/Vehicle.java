@@ -57,6 +57,7 @@ public abstract class Vehicle {
 	
 	protected NeighborTable nbTab;
 	protected TopologyTable tpTab;
+	protected RoutingTable rtTab;
 	
 	// States for Sending & Receiving packet types
 	protected String pType;
@@ -120,8 +121,11 @@ public abstract class Vehicle {
 			serverPort = SERVER_PORT + nodeID;
 		
 		forwardQueue = new ConcurrentLinkedQueue<Packet>();
-		neighborSet = new ConcurrentSkipListSet<Integer>();
 		nodesTopology = new ConcurrentSkipListMap<Integer, Node>();
+		nbTab = new NeighborTable();
+		tpTab = new TopologyTable();
+		rtTab = new RoutingTable();
+		
 		nodesTopology.put(nodeID, new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY()));
 		cache = new RbaCache();
 		front = 0;
@@ -255,35 +259,6 @@ public abstract class Vehicle {
 		}				
 	}
 	
-	public void updateMPR() {
-		return;
-	}
-	
-	public void processHello(int source, HelloMessage hello) {
-		boolean isOneHopNeighbor = this.nbTab.isOneHopNeighbor(source);
-		boolean isTwoHopNeighbor = this.nbTab.isTwoHopNeighbor(source);
-		if (isOneHopNeighbor) {
-			String linkStatus = nbTab.getLinkStatus(source);
-			if (linkStatus.equalsIgnoreCase("BI") || linkStatus.equalsIgnoreCase("MPR")) {
-				// TODO: UPDATE HOLDING TIME
-				;
-			} else if (linkStatus.equals("UNI")) {
-				ConcurrentSkipListMap<Integer, String> neighborsOfSource = hello.getOneHopNeighbors();
-				if (neighborsOfSource.containsKey(this.nodeID)) {
-					nbTab.setLinkStatus(source, "BI");
-					updateMPR();
-				}
-			}
-		} else {	// if (!isOneHopNeighbor)
-			nbTab.setLinkStatus(source, "UNI");
-//			if (isTwoHopNeighbor) {
-//				nbTab.removeTwoHopNeighbor(source);
-//			}
-		}
-		
-	}
-
-	
 	/*
 	 * Upon received packet:
 	 * 		Update the sequence number and broadcast number in cache
@@ -291,12 +266,13 @@ public abstract class Vehicle {
 	 * 		
 	 * 		Forward to its neighbors (except previous hop)
 	 */
-	
-	
 	public void receivePacket(Packet packetReceived) {
 //		System.out.println(packetReceived.toString());
 		Header header = packetReceived.getHeader();
 		int source = header.getSource();
+		int prevHop = header.getPrevHop();
+		if ((source == nodeID) || (prevHop == nodeID))
+			return;
 		if (!header.inTransmissionRange(this.getGPS().getX()))
 			return;
 		String packetType = header.getPacketType();
@@ -306,11 +282,16 @@ public abstract class Vehicle {
 			return;
 		}
 		
-		int prevHop = header.getPrevHop();
 		int sn = header.getSeqNum();
+		if (packetType.equals("tc")) {
+			TCMessage tc = packetReceived.getTC();
+			processTC(source, sn, tc);
+			return;
+		}
+		
+		
+		
 		if (packetType.equals("normal"))  {
-			if (!(neighborSet.contains(prevHop)) || prevHop==nodeID)
-				return;
 			
 //			try {
 //				if (VehicleHandler.ifPacketLoss(this.gps, nodesMap.get(prevHop).getGPS())) {
@@ -331,8 +312,6 @@ public abstract class Vehicle {
 //				return;
 //			}
 			
-			if ((source == nodeID) || (prevHop == nodeID))
-				return;
 			
 			if (sn % 300 == 0) {
 				System.out.println("Received packet " + packetReceived.toString());
@@ -407,6 +386,34 @@ public abstract class Vehicle {
 		
 	}
 	
+	public void processHello(int source, HelloMessage hello) {
+		boolean isOneHopNeighbor = this.nbTab.isOneHopNeighbor(source);
+		if (isOneHopNeighbor) {
+			String linkStatus = nbTab.getLinkStatus(source);
+			ConcurrentSkipListMap<Integer, String> neighborsOfSource = hello.getOneHopNeighbors();
+			if (linkStatus.equalsIgnoreCase("BI") || linkStatus.equalsIgnoreCase("MPR")) {
+				// TODO: UPDATE HOLDING TIME
+				;
+			} else if (linkStatus.equals("UNI")) {
+				if (neighborsOfSource.containsKey(this.nodeID)) {
+					nbTab.setLinkStatus(source, "BI");
+				}
+			}
+			boolean updated = nbTab.updateTwoHopNeighbors(this.nodeID, source, neighborsOfSource);
+			if (updated)
+				rtTab.updateRoutingTable();
+		} else {	// if (!isOneHopNeighbor)
+			nbTab.setLinkStatus(source, "UNI");
+		}
+		
+	}
+	
+	public void processTC(int source, int tcSn, TCMessage tc) {
+		boolean updated = tpTab.updateTopologyTable(source, tcSn, tc);
+		if (updated) {
+			this.rtTab.updateRoutingTable();
+		}
+	}
 	
 	public void followAhead() {
 		if (letCarIn > 0) {		// 

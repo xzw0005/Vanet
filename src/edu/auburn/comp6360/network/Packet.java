@@ -70,6 +70,10 @@ public class Packet implements Serializable {
 		return this.hello;
 	}
 	
+	public TCMessage getTC() {
+		return this.tc;
+	}
+	
 	public int getPacketSize() {
 		return 4096;
 	}

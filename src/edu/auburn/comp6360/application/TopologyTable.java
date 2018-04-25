@@ -18,13 +18,17 @@ public class TopologyTable {
 		return topologyMap.get(nid).getDestMPRs();
 	}
 	
-	public void updateTopologyTable(int nid, int tcSn, TCMessage tc) {
-		ConcurrentSkipListSet<Integer> tcMPRs = tc.getMPRs();
+	public boolean updateTopologyTable(int nid, int tcSn, TCMessage tc) {
+		boolean updated = true;
+		ConcurrentSkipListSet<Integer> tcMPRs = tc.getMprSelectorTable();
 		TTcontent entry = new TTcontent(tcSn, tcMPRs);
 		if ((topologyMap.get(nid) == null) || (tcSn > entry.getTTsn()))
 			topologyMap.put(nid, entry);
 		else if (tcSn == entry.getTTsn())
 			topologyMap.get(nid).refreshHoldingTime();
+		else
+			updated = false;
+		return updated;
 	}
 	
 	
