@@ -84,6 +84,10 @@ public class Header implements Serializable {
 	public boolean inTransmissionRange(double xCoord) {
 		return Math.abs(xCoord - prevX) < 100;
 	}
+
+	public boolean shouldUnlink(double xCoord) {
+		return Math.abs(xCoord - prevX) > 102.5;
+	}
 	
 //	public void setPacketType(int type) {
 //		this.packetType = type;

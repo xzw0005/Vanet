@@ -4,12 +4,12 @@ package edu.auburn.comp6360.application;
 //import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class RbaCache {
+public class RebroadcastCache {
 		
 //	private Map<Integer, Map<String, CacheContent>> cacheMap = new HashMap<Integer, Map<String, CacheContent>>();
 	private ConcurrentHashMap<Integer, ConcurrentHashMap<String, CacheContent>> cacheMap = new ConcurrentHashMap<Integer, ConcurrentHashMap<String, CacheContent>>();
 	
-	public RbaCache() {
+	public RebroadcastCache() {
 		cacheMap = new ConcurrentHashMap<Integer, ConcurrentHashMap<String, CacheContent>>();
 	}
 	

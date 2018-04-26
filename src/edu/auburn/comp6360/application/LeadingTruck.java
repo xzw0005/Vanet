@@ -27,7 +27,28 @@ public class LeadingTruck extends Vehicle {
 		roadTrainList = new LinkedList<Integer>();
 		roadTrainList.add(nodeID);
 	}
-
+	
+	public void startAll() {
+		if (this.SET_BROADCAST == true) {
+			brcst_thread = new BroadcastHelloThread();
+		} else {
+			hello_thread = new P2PHelloThread();
+		}	
+		send_thread = new SendVehInfoThread();
+//		fwd_thread = new ForwardingThread();
+		recv_thread = new ReceiveThread(serverPort);		
+		config_thread = new ConfigThread();
+		
+		config_thread.start();
+		if (this.SET_BROADCAST == true) {
+			brcst_thread.start();
+		} else {
+			send_thread.start();
+		}		
+		recv_thread.run();
+//		fwd_thread.start();
+				
+	}
 	
   /**
    * Obtain the acceleration for the Leading Vehicle (every 10 ms)
