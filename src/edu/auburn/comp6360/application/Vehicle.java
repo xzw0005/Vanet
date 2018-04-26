@@ -8,12 +8,14 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-
+import java.util.Set;
+//import java.util.Map.Entry;
 //import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import edu.auburn.comp6360.network.ClientThread;
 import edu.auburn.comp6360.network.Packet;
@@ -68,7 +70,7 @@ public abstract class Vehicle {
 	
 	protected int letCarIn;
 	
-	protected ExecutorService executor;
+	protected ExecutorService es;
 
 	protected P2PHelloThread hello_thread;
 	protected BroadcastHelloThread brcst_thread;
@@ -119,6 +121,8 @@ public abstract class Vehicle {
 			serverPort = SERVER_PORT;
 		else
 			serverPort = SERVER_PORT + nodeID;
+		
+		es = Executors.newFixedThreadPool(50);
 		
 		forwardQueue = new ConcurrentLinkedQueue<Packet>();
 		nodesTopology = new ConcurrentSkipListMap<Integer, Node>();
@@ -254,7 +258,28 @@ public abstract class Vehicle {
 //					System.out.println("Send to: " + nbHostname + ":" + nbPort);
 //					System.out.println("\tPacket: " + packetToSend);
 					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
-					ct.run();
+					es.execute(ct);
+				}
+			}
+		}				
+	}
+
+	public void sendPacketToAll(Packet packetToSend, int prevHop) {
+//		Set<Entry<Integer, ConcurrentSkipListSet<Integer>>> set = twoHopNeighbors.entrySet();
+		Set<Integer> neighborSet = this.nodesTopology.keySet();
+		if (neighborSet.isEmpty()) 
+			return;
+		for (int nbID : neighborSet) {
+			if (nodesTopology.get(nbID) != null) {
+				Node nb = nodesTopology.get(nbID);
+				if (nbID != prevHop) {
+					String nbHostname = nb.getHostname();
+					int nbPort = nb.getPortNumber();
+//					System.out.println("Send to: " + nbHostname + ":" + nbPort);
+//					System.out.println("\tPacket: " + packetToSend);
+					ClientThread ct = new ClientThread(nbHostname, nbPort, packetToSend);
+					es.execute(ct);
+//					ct.run();
 //					executor.execute(new ClientThread(nbHostname, nbPort, packetToSend));			
 				}
 			}
@@ -287,6 +312,7 @@ public abstract class Vehicle {
 				return;
 			}
 			HelloMessage hello = packetReceived.getHello();
+//			System.out.println(hello.toString());
 			processHello(source, hello);
 			return;
 		}
@@ -408,10 +434,13 @@ public abstract class Vehicle {
 				}
 			}
 			updated = nbTab.updateTwoHopNeighbors(this.nodeID, source, neighborsOfSource, updated);
-			if (updated)
+			if (updated) {
 				rtTab.updateRoutingTable();
+				System.out.println(nodeID + "updated neighborhood: " );
+			}
 		} else {	// if (!isOneHopNeighbor)
 			nbTab.setLinkStatus(source, "UNI");
+			System.out.println("Hello message from " + source +" :: " + hello.toString());
 		}
 		
 	}
@@ -529,11 +558,12 @@ public abstract class Vehicle {
 	public class SendVehInfoThread extends Thread {
 		@Override
 		public void run() {
+			System.out.println("SendVehInfo Thread Running...");
 			while (true) {
 				try {
 					Packet p = initPacket("normal", -1, -1);
 					sendPacketToNeighbors(p, nodeID); 
-					Thread.sleep(30);
+					Thread.sleep(10);
 					sensorUpdate();
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -545,11 +575,12 @@ public abstract class Vehicle {
 	public class P2PHelloThread extends Thread {
 		@Override
 		public void run() {
+			System.out.println("Hello Thread Running...");
 			while (true) {
 				try {
 					Packet p = initPacket("hello", -1, -1);
-					sendPacketToNeighbors(p, nodeID); 
-					Thread.sleep(40);
+					sendPacketToAll(p, nodeID); 
+					Thread.sleep(20);
 					sensorUpdate();
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -572,6 +603,7 @@ public abstract class Vehicle {
 		
 		@Override
 		public void run() {
+			System.out.println("Hello Thread Running...");
 			while (true) {
 				//System.out.println("GOGO BROADCASTING");
 				Packet helloPacket = initPacket("normal", -1, -1);
@@ -625,6 +657,7 @@ public abstract class Vehicle {
 			ConfigFileHandler config = new ConfigFileHandler(filename);
 			Node selfNode = new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY());
 			nodesTopology = config.writeConfigFile(selfNode);
+			System.out.println("Config Thread Running...");
 			while (true) {
 				try {
 					int counter = 0;
@@ -644,7 +677,7 @@ public abstract class Vehicle {
 	}
 	
 	
-	public class ReceiveThread implements Runnable {
+	public class ReceiveThread extends Thread {
 		public final int MAX_PACKET_SIZE = 4096;
 		private int port;
 		private boolean listening;
@@ -656,6 +689,7 @@ public abstract class Vehicle {
 		
 		@Override
 		public void run() {
+			System.out.println("Receive Thread Listening...");
 			try {
 				DatagramSocket socket = new DatagramSocket(port);
 				listening = true;

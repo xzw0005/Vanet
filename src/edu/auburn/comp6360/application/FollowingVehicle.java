@@ -52,26 +52,32 @@ public class FollowingVehicle extends Vehicle {
 	
 //	@Override
 	public void startAll() {
-//		super.startAll();
 //		executor.execute(new KeyboardListenerThread());			
 		kt = new KeyboardListenerThread();
+		kt.setPriority(Thread.MAX_PRIORITY);
 		if (this.SET_BROADCAST == true) {
 			brcst_thread = new BroadcastHelloThread();
-//			fwd_thread = new ForwardingThread();
+			brcst_thread.setPriority(Thread.MAX_PRIORITY);
 		} else {
-			send_thread = new SendVehInfoThread();
+			hello_thread = new P2PHelloThread();
+			hello_thread.setPriority(Thread.MAX_PRIORITY);
 		}	
+		send_thread = new SendVehInfoThread();
 		recv_thread = new ReceiveThread(serverPort);		
 		config_thread = new ConfigThread();
+		
+		send_thread.setPriority(Thread.MAX_PRIORITY);
+		recv_thread.setPriority(Thread.MAX_PRIORITY);
+		config_thread.setPriority(Thread.MAX_PRIORITY);
 		
 		config_thread.start();
 		if (this.SET_BROADCAST == true) {
 			brcst_thread.start();
-//			fwd_thread.start();
 		} else {
-			send_thread.start();
-		}		
-		recv_thread.run();
+			hello_thread.start();
+		}
+		send_thread.start();
+		recv_thread.start();
 		kt.start();			
 	}
 	

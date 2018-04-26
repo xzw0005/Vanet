@@ -31,23 +31,28 @@ public class LeadingTruck extends Vehicle {
 	public void startAll() {
 		if (this.SET_BROADCAST == true) {
 			brcst_thread = new BroadcastHelloThread();
+			brcst_thread.setPriority(Thread.MAX_PRIORITY);
 		} else {
 			hello_thread = new P2PHelloThread();
+			hello_thread.setPriority(Thread.MAX_PRIORITY);
 		}	
 		send_thread = new SendVehInfoThread();
-//		fwd_thread = new ForwardingThread();
 		recv_thread = new ReceiveThread(serverPort);		
 		config_thread = new ConfigThread();
+
+		
+		send_thread.setPriority(Thread.MAX_PRIORITY);
+		recv_thread.setPriority(Thread.MAX_PRIORITY);
+		config_thread.setPriority(Thread.MAX_PRIORITY);
 		
 		config_thread.start();
 		if (this.SET_BROADCAST == true) {
 			brcst_thread.start();
 		} else {
-			send_thread.start();
+			hello_thread.start();
 		}		
-		recv_thread.run();
-//		fwd_thread.start();
-				
+		send_thread.start();
+		recv_thread.start();
 	}
 	
   /**

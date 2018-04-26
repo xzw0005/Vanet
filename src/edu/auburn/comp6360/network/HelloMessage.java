@@ -37,6 +37,19 @@ public class HelloMessage implements Serializable {
 		}
 		return sourceMPRs;
 	}
-		
+	
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		if (neighbors.isEmpty()) {
+			sb.append("There are no neighbors!!");
+			return sb.toString();
+		}
+		sb.append("Neighbors: ");
+		for (int i : neighbors.keySet()) {
+			sb.append(i + "-" + neighbors.get(i) + ";  ");
+		}
+		return sb.toString(); 
+	}		
 	
 }
