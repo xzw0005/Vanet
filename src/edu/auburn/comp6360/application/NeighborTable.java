@@ -113,7 +113,7 @@ public class NeighborTable {
 	}
 	
 	public void removeTwoHopNeighbor(int source) {
-		this.twoHopNeighbors.remove(source);
+		twoHopNeighbors.remove(source);
 	}
 	
 	/*
@@ -143,10 +143,23 @@ public class NeighborTable {
 		// otherwise, add it into two hop neighbors. 
 		for (int nid : neighborsOfSource.keySet()) {
 			if (nid == selfId) {
-				if (neighborsOfSource.get(selfId).equals("MPR"))
-					this.mprSelectorTable.add(source);
-				else
-					this.mprSelectorTable.remove(source);
+				if (neighborsOfSource.get(selfId).equals("MPR")) {
+					if (!mprSelectorTable.contains(source)) {
+						System.out.println(source + " is not in MPR selector table.");
+						mprSelectorTable.add(source);
+						this.printMprSelectorTable(selfId);
+						this.printOneHopNeighbors(selfId);
+						this.printTwoHopNeighbors(selfId);
+					}
+				}
+				else {
+					if (mprSelectorTable.contains(source)) {
+						System.out.println(source + " is in MPR selector table.");
+						mprSelectorTable.remove(source);						
+						this.printMprSelectorTable(selfId);
+						this.printOneHopNeighbors(selfId);
+						this.printTwoHopNeighbors(selfId);					}
+				}
 			}
 			else if (neighborsOfSource.get(nid).equalsIgnoreCase("BI") || neighborsOfSource.get(nid).equalsIgnoreCase("MPR")) {
 				ConcurrentSkipListSet<Integer> accessThroughSet = new ConcurrentSkipListSet<Integer>();
@@ -155,7 +168,12 @@ public class NeighborTable {
 				boolean added = accessThroughSet.add(source);
 				if (added)
 					updated = true;
-				twoHopNeighbors.put(nid, accessThroughSet);
+				if (!this.isOneHopNeighbor(nid) && !this.isTwoHopNeighbor(nid)) {
+					System.out.println("Node " + nid + " is not in 1-hop neighbor table or 2-hop neighor table");
+					this.printOneHopNeighbors(selfId);
+					this.printTwoHopNeighbors(selfId);
+					twoHopNeighbors.put(nid, accessThroughSet);
+				} 
 			}
 		}
 		cleanTwoHopNeighbors();
@@ -229,9 +247,48 @@ public class NeighborTable {
 			}
 		}
 		// Update the one hop neighbors by labeling MPRs
-		for (int mpr : mprSet) {
-			this.setLinkStatus(mpr, "MPR");
+		for (int nb : this.oneHopNeighbors.keySet()) {
+			if (mprSet.contains(Integer.valueOf(nb))) {
+				if (this.oneHopNeighbors.get(nb).equals("BI"))
+					this.setLinkStatus(nb, "MPR");
+			} else {
+				if (this.oneHopNeighbors.get(nb).equals("MPR"))
+					this.setLinkStatus(nb, "BI");
+			}
 		}
+//		for (int mpr : mprSet) {
+//			this.setLinkStatus(mpr, "MPR");
+//		}
+	}
+	
+	public void printMprSelectorTable(int selfId) {
+		System.out.print(selfId + "'s MPR Selector Table:  ");
+		for (int i : getMprSelectorTable()) {
+			System.out.print(i + ";\t");
+		}
+		System.out.println();
+	}
+	
+	public void printOneHopNeighbors(int selfId) {
+		System.out.println(selfId + "'s 1-hop neighbors:  ");
+		System.out.println("--------------------");
+		System.out.println("| Node ID | Status |");
+		System.out.println("--------------------");
+		for (int i : this.oneHopNeighbors.keySet()) {
+			System.out.println("|    " + i + "    |   " +  this.oneHopNeighbors.get(i) + "   |");
+		}
+		System.out.println("--------------------");
+	}
+	
+	public void printTwoHopNeighbors(int selfId) {
+		System.out.println(selfId + "'s  2-hop neighbors:  ");
+		System.out.println("--------------------");
+		System.out.println("| Node ID | AccThr |");
+		System.out.println("--------------------");
+		for (int i : this.twoHopNeighborsThroughMPR.keySet()) {
+			System.out.println("|    " + i + "    |   " +  this.twoHopNeighborsThroughMPR.get(i) + "   |");
+		}
+		System.out.println("--------------------");
 	}
 	
 	

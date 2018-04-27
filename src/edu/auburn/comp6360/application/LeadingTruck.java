@@ -64,6 +64,7 @@ public class LeadingTruck extends Vehicle {
 	@Override
 	public void setAcceleration() {
 		this.setAcceleration(Math.random() * 2 - 1);
+//		this.setAcceleration(0);
 	}
 	
 //	@Override	
@@ -136,6 +137,12 @@ public class LeadingTruck extends Vehicle {
 		if ((waitJoinReply != source) || (waitOK != 0))
 			return;
 		waitJoinReply = 0;
+		System.out.println("NODE " + source + " JOIN COMPLETE!!!!!");
+		System.out.println("NODE " + source + " JOIN COMPLETE!!!!!");
+		System.out.println("NODE " + source + " JOIN COMPLETE!!!!!");
+		System.out.println("NODE " + source + " JOIN COMPLETE!!!!!");
+		System.out.println("NODE " + source + " JOIN COMPLETE!!!!!");		
+		
 //		roadTrainList.addLast(source);
 		int index = roadTrainList.indexOf(Integer.valueOf(toFollow));
 //		// Inform the notified node update its ahead vehicle as the one joined road train recently
@@ -144,8 +151,7 @@ public class LeadingTruck extends Vehicle {
 			sendSpecificPacket("update", toNotify, source);	
 		}
 		if (!roadTrainList.contains(Integer.valueOf(source)))
-			roadTrainList.add(index + 1, source);			
-			
+			roadTrainList.add(index + 1, source);
 	}
 		
 	/*

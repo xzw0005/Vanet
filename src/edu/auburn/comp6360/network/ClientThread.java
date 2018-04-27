@@ -6,7 +6,7 @@ import java.net.DatagramSocket;
 
 import edu.auburn.comp6360.utilities.PacketHandler;
 
-public class ClientThread implements Runnable {
+public class ClientThread extends Thread { //implements Runnable {
 
 	private String serverHostname;
 	private int serverPort;

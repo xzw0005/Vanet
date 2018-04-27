@@ -21,6 +21,10 @@ public class Node {
 		this.links = new ConcurrentSkipListSet<Integer>();
 	}
 	
+	public void setLinks(ConcurrentSkipListSet<Integer> neighborSet) {
+		this.links = neighborSet;
+	}
+	
 	public int getNodeID() {
 		return nodeID;
 	}

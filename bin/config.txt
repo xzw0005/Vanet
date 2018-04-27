@@ -1,2 +1,0 @@
-Node 1 pavilion, 10121 2704.2 0.0 links
-Node 2 pavilion, 10122 2618.0 0.0 links

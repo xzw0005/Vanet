@@ -83,6 +83,7 @@ public class FollowingVehicle extends Vehicle {
 	
 	@Override
 	public void setAcceleration() {
+//		this.setAcceleration(Math.random() * 2 - 1);
 		this.setAcceleration(this.getAcceleration());
 	}	
 	
