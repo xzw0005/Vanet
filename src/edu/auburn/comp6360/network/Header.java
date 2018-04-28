@@ -17,7 +17,7 @@ public class Header implements Serializable {
 	private int dest;
 	private int piggyback;
 	
-	private int pathLength;
+	private int pathLength;	// Used for computing latency
 	
 	public Header(String type, int source, int sn, int prevHop, double prevX) {
 		this.packetType = type;
@@ -87,6 +87,10 @@ public class Header implements Serializable {
 
 	public boolean shouldUnlink(double xCoord) {
 		return Math.abs(xCoord - prevX) > 102.5;
+	}
+	
+	public double getSenderX() {
+		return this.prevX;
 	}
 	
 //	public void setPacketType(int type) {

@@ -83,25 +83,13 @@ public abstract class Vehicle {
 	protected ReceiveThread recv_thread;
 //	protected ForwardingThread fwd_thread;
 	
+	// Data for calculating the experimental results
 	protected long initialTime;
 	protected int numPacketReceived;
 	protected int numPacketLost;
 	protected int numLatencyRecord;
 	protected double avgLatency;
-	
-//	public Vehicle() {
-//		
-//		gps = new GPS();
-//		timeStamp = System.currentTimeMillis();
-//		snMap = VehicleHandler.initializeSequenceNumbers();
-//		try {
-//			hostName = InetAddress.getLocalHost().getHostName();//.substring(0, 6);
-//			if (hostName.indexOf(".") > -1)
-//				hostName = hostName.substring(0, hostName.indexOf("."));
-//		} catch (UnknownHostException e) {			
-//			e.printStackTrace();
-//		}
-//	}
+
 	
 	public Vehicle(int nodeId) {
 		nodeID = nodeId;
@@ -319,8 +307,8 @@ public abstract class Vehicle {
 			return;
 
 		String packetType = header.getPacketType();
+		double xCoord = this.getGPS().getX();
 		if (packetType.equals("hello")) {
-			double xCoord = this.getGPS().getX();
 			if (!header.inTransmissionRange(xCoord)) {
 				if (header.shouldUnlink(xCoord)) {
 					if (nbTab.unlink(source))
@@ -344,24 +332,25 @@ public abstract class Vehicle {
 		if (packetType.equals("normal"))  {
 			if (!header.inTransmissionRange(this.getGPS().getX()))
 				return;			
-//			try {
-//				if (VehicleHandler.ifPacketLoss(this.gps, nodesMap.get(prevHop).getGPS())) {
-//					++this.numPacketLost;
-//					return;
-//				}
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//			}
-//			++this.numPacketReceived;				
-//			
-//			// Received packet originated from itself, used to compute latency
-//			if ((source == nodeID) && (packetReceived.increasePathLength() == 1))  { 
-//				long packetInitTime = this.timeStamp - (this.snMap.get(packetType) - sn) * 10;
-//				long latency = System.currentTimeMillis() - packetInitTime;
-//				this.avgLatency = (avgLatency * numLatencyRecord + latency) / (numLatencyRecord + 1);
-//				this.numLatencyRecord++;
-//				return;
-//			}
+			
+			try {
+				if (VehicleHandler.ifPacketLoss(header.getSenderX(), this.getGPS().getX())) {
+					++this.numPacketLost;
+					return;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			++this.numPacketReceived;				
+			
+			// Received packet originated from itself, used to compute latency
+			if ((source == nodeID) && (packetReceived.increasePathLength() == 1))  { 
+				long packetInitTime = this.timeStamp - (this.packetSequenceNumber - packetSn) * 10;
+				long latency = System.currentTimeMillis() - packetInitTime;
+				this.avgLatency = (avgLatency * numLatencyRecord + latency) / (numLatencyRecord + 1);
+				this.numLatencyRecord++;
+				return;
+			}
 			
 			
 			if (packetSn % 100 == 0) {
@@ -435,7 +424,6 @@ public abstract class Vehicle {
 	
 	public void processHello(int source, HelloMessage hello) {
 		ConcurrentSkipListMap<Integer, String> neighborsOfSource = hello.getOneHopNeighbors();
-		boolean isOneHopNeighbor = this.nbTab.isOneHopNeighbor(source);
 
 		if (!savedHellos.containsKey(source)) {
 			this.savedHellos.put(source, hello.toString());
@@ -447,16 +435,15 @@ public abstract class Vehicle {
 			}
 		}
 		
-		if (isOneHopNeighbor) {
-
+		boolean updated = false;
+		if (nbTab.isTwoHopNeighbor(source))	{
+			// if source was a two hop neighbor previously, now it is a one hop neighbor, remove from two hop neighbors.
+			nbTab.removeTwoHopNeighbor(source);
+			updated = true;
+		}
+		if (nbTab.isOneHopNeighbor(source)) {
 			String linkStatus = nbTab.getLinkStatus(source);
 			//neighborsOfSource = hello.getOneHopNeighbors();
-			boolean updated = false;
-			if (nbTab.isTwoHopNeighbor(source))	{
-				// if source was a two hop neighbor previously, now it is a one hop neighbor, remove from two hop neighbors.
-				nbTab.removeTwoHopNeighbor(source);
-				updated = true;
-			}
 			if (linkStatus.equalsIgnoreCase("BI") || linkStatus.equalsIgnoreCase("MPR")) {
 				// TODO: UPDATE HOLDING TIME
 				;
@@ -469,20 +456,13 @@ public abstract class Vehicle {
 //					}
 				}
 			}
-			updated = nbTab.updateTwoHopNeighbors(this.nodeID, source, neighborsOfSource, updated);
-			if (updated) {
-				rtTab.updateRoutingTable();
-//				System.out.println(nodeID + "updated neighborhood: " );
-			}
 		} else {	// if (!isOneHopNeighbor)
 			nbTab.setLinkStatus(source, "UNI");
-			boolean updated = false;
-			if (nbTab.isTwoHopNeighbor(source))	{
-				// if source was a two hop neighbor previously, now it is a one hop neighbor, remove from two hop neighbors.
-				nbTab.removeTwoHopNeighbor(source);
-				updated = true;
-			}
-			updated = nbTab.updateTwoHopNeighbors(this.nodeID, source, neighborsOfSource, updated);
+		}
+		updated = nbTab.updateTwoHopNeighbors(this.nodeID, source, neighborsOfSource, updated);
+		if (updated) {
+			rtTab.updateRoutingTable();
+//				System.out.println(nodeID + "updated neighborhood: " );
 		}
 		
 	}
@@ -713,7 +693,7 @@ public abstract class Vehicle {
 					selfNode = new Node(nodeID, hostName, serverPort, gps.getX(), gps.getY());
 					selfNode.setLinks(nbTab.getNeighborSet());
 					config.writeConfigFile(selfNode);
-//					writeCalculationResults();
+					writeCalculationResults();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
