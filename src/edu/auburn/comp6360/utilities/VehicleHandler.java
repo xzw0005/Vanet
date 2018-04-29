@@ -5,8 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 //import java.util.HashMap;
 //import java.util.Map;
 //import java.util.SortedMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import edu.auburn.comp6360.application.GPS;
 import edu.auburn.comp6360.application.Node;
@@ -43,6 +41,10 @@ public class VehicleHandler {
 	    	return true;
 	    return false;
 	}
+
+	public static boolean ifPacketLoss(double x1, double x2) {
+		return ifPacketLoss(computeDistance(x1, x2));
+	}
 	
 	public static boolean ifPacketLoss(GPS gps1, GPS gps2) {
 		return ifPacketLoss(computeDistance(gps1, gps2));
@@ -64,6 +66,10 @@ public class VehicleHandler {
 	
 	public static double computeDistance(GPS gps1, GPS gps2) {
 		return computeDistance(gps1.getX(), gps1.getY(), gps2.getX(), gps2.getY());
+	}
+	
+	public static double computeDistance(double x1, double x2) {
+		return Math.abs(x1 - x2);
 	}
 	
 	public static boolean inTransmissionRange(double x1, double y1, double x2, double y2) {
