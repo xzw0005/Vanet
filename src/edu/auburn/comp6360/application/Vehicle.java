@@ -324,7 +324,7 @@ public abstract class Vehicle {
 			if (!header.inTransmissionRange(xCoord)) {
 				if (header.shouldUnlink(xCoord)) {
 					if (nbTab.unlink(source))
-						rtTab.updateRoutingTable();
+						rtTab.updateRoutingTable(nodeID, nodesTopology, tpTab, nbTab.getNeighborSet());
 				}
 				return;
 			}
@@ -471,7 +471,7 @@ public abstract class Vehicle {
 			}
 			updated = nbTab.updateTwoHopNeighbors(this.nodeID, source, neighborsOfSource, updated);
 			if (updated) {
-				rtTab.updateRoutingTable();
+				rtTab.updateRoutingTable(nodeID, nodesTopology, tpTab, nbTab.getNeighborSet());
 //				System.out.println(nodeID + "updated neighborhood: " );
 			}
 		} else {	// if (!isOneHopNeighbor)
@@ -490,7 +490,7 @@ public abstract class Vehicle {
 	public void processTC(int source, int tcSn, TCMessage tc) {
 		boolean updated = tpTab.updateTopologyTable(source, tcSn, tc);
 		if (updated) {
-			this.rtTab.updateRoutingTable();
+			rtTab.updateRoutingTable(nodeID, nodesTopology, tpTab, nbTab.getNeighborSet());
 		}
 	}
 	
