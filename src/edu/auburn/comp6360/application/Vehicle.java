@@ -456,20 +456,18 @@ public abstract class Vehicle {
 //					}
 				}
 			}
-<<<<<<< HEAD
 			updated = nbTab.updateTwoHopNeighbors(this.nodeID, source, neighborsOfSource, updated);
 			if (updated) {
 				rtTab.updateRoutingTable(nodeID, nodesTopology, tpTab, nbTab.getNeighborSet());
 //				System.out.println(nodeID + "updated neighborhood: " );
 			}
-=======
->>>>>>> d66176acac043bc414ce63f984b2e81cc1f083ba
+
 		} else {	// if (!isOneHopNeighbor)
 			nbTab.setLinkStatus(source, "UNI");
 		}
 		updated = nbTab.updateTwoHopNeighbors(this.nodeID, source, neighborsOfSource, updated);
 		if (updated) {
-			rtTab.updateRoutingTable();
+			rtTab.updateRoutingTable(nodeID, nodesTopology, tpTab, nbTab.getNeighborSet());
 //				System.out.println(nodeID + "updated neighborhood: " );
 		}
 		
